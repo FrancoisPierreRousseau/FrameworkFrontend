@@ -13,7 +13,9 @@ export type Constructor<T> = {
 };
 
 export class Plateform {
-  public services: IServiceCollection = new Container();
+  public services: IServiceCollection = new Container({
+    autoBindInjectable: true,
+  });
   private renderStrategy: RenderStrategy;
 
   constructor(
@@ -43,7 +45,7 @@ class DefaultRenderStrategy implements RenderStrategy {
 
     const componentTemplateMetadata = new ComponentTemplateMetadata(app);
 
-    const services = new Container();
+    const services = new Container({ autoBindInjectable: true });
     const componentBuilder = ComponentFactory.create(app, services);
     const componentRef = componentBuilder.build();
     componentRef.render();

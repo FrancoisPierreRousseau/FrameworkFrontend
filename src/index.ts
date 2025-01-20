@@ -2,6 +2,14 @@ import "reflect-metadata";
 import { AppComponent } from "./app/app.component";
 import { Plateform } from "./core/plateform";
 
+/*
+  FIRST:  Revoir le systéme hierarchique de dépendance (la construction)
+  le service component de base posséde ses propre enfant. 
+  Pour avoir donc accés au enfant dans un parent
+  j'appellerai le container parent de l'enfant et ainsi de suite. 
+  Cela me permettra d'avoir un controle sur le scope. 
+*/
+
 // Utilisation de decorateur
 // Conserver les routes dans une classe statique.
 // Gérer le processus de construction du routing pour rendre la component final en créeant des

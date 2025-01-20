@@ -1,4 +1,4 @@
-import { injectable, decorate, Container } from "inversify";
+import { injectable, Container } from "inversify";
 import { IServiceCollection } from "../services/service.collection";
 
 class ComponentBuilder {
@@ -6,7 +6,7 @@ class ComponentBuilder {
   private children: ComponentBuilder[] = [];
 
   constructor(
-    private services: IServiceCollection,
+    public services: IServiceCollection,
     componentType: Constructor<IComponent>
   ) {
     this.componentTemplate = new ComponentTemplateMetadata(
@@ -37,16 +37,19 @@ export class ComponentFactory {
     componentType: Constructor<IComponent>,
     services: IServiceCollection
   ): ComponentBuilder {
-    const builder = new ComponentBuilder(services, componentType);
+    const componentBuilder = new ComponentBuilder(services, componentType);
 
     const imports = new ImportComponentMetada(componentType);
 
     imports.importComponents.forEach((importComponent) => {
-      const childBuilder = this.create(importComponent, services);
-      builder.addChild(childBuilder);
+      const childBuilder = this.create(
+        importComponent,
+        componentBuilder.services
+      );
+      componentBuilder.addChild(childBuilder);
     });
 
-    return builder;
+    return componentBuilder;
   }
 }
 
@@ -73,34 +76,35 @@ export class ElementRef<TElement extends HTMLElement> {
   }
 }
 
-const childs = new Map<
-  { [key: string]: any },
-  { identifier: Constructor<IComponent> | string; propertyKey: string }
->();
+const childViews: Map<
+  Constructor<IComponent>,
+  { object: { [key: string]: any }; propertyKey: string }
+> = new Map();
+
+const containerRef = new Map<Constructor<IComponent>, ComponentRef>();
+let childConstructorComponentTest: Constructor<IComponent>;
 
 export class ComponentRef {
   public readonly services: IServiceCollection; // A revoir
 
-  private childBuilders: ComponentRef[] = [];
+  private children: ComponentRef[] = [];
 
   constructor(
     private componentTemplate: ComponentTemplate,
     services: IServiceCollection
   ) {
-    this.services = new Container();
+    this.services = new Container({ autoBindInjectable: true });
     this.services.parent = services;
+    containerRef.set(componentTemplate.componentType, this);
   }
 
-  add(builder: ComponentRef) {
-    this.childBuilders.push(builder);
+  add(child: ComponentRef) {
+    this.children.push(child);
+    console.log("add child");
   }
 
-  render(
-    callback?: (
-      componentType: Constructor<IComponent>,
-      component: IComponent
-    ) => void
-  ) {
+  // C'est au renderer de se charger de rendre ???
+  render() {
     const self = this;
     const componentTemplate = self.componentTemplate;
 
@@ -136,27 +140,30 @@ export class ComponentRef {
         // Via @ViewChild
 
         const component = self.services.get(componentTemplate.componentType);
-
-        if (callback) {
-          callback(componentTemplate.componentType, component);
-        }
+        self.services.parent
+          ?.bind(componentTemplate.componentType)
+          .toConstantValue(component);
 
         // Dissocier les childs du component avec un ViewChidlRed ou un ruc du genre
-        self.childBuilders.forEach((builder) => {
-          builder.render((type, child) => {
-            self.services.bind(type).toConstantValue(child);
-          });
+        self.children.forEach((childRef) => {
+          childRef.render();
         });
 
         // Doit être géré par le renderer
-        document.addEventListener("DOMContentLoaded", (event) => {
-          childs.forEach((metaData, child) => {
-            console.log(self.services);
-            if (self.services.isBound(metaData.identifier)) {
-              child[metaData.propertyKey] = self.services.get(
-                metaData.identifier
-              );
-            }
+        document.addEventListener("DOMContentLoaded", () => {
+          const childRef = containerRef.get(childConstructorComponentTest);
+          console.log(childRef);
+          const childComponent = childRef?.services.parent?.parent?.get(
+            childConstructorComponentTest
+          );
+          console.log(childRef?.services.parent?.parent);
+
+          childViews.forEach((prop, childType) => {
+            const view = self.children.find(
+              (childRef) => childRef === containerRef.get(childType)
+            );
+            const childComponent = view?.services.get(childType);
+            prop.object[prop.propertyKey] = childComponent;
           });
 
           if (component.afterViewInit) {
@@ -170,9 +177,18 @@ export class ComponentRef {
   }
 }
 
-export function ViewChild(identifier: Constructor<IComponent> | string) {
-  return function defineViewChild(child: any, propertyKey: string) {
-    childs.set(child, { identifier, propertyKey });
+export function ViewChild(service: Constructor<IComponent>) {
+  return function defineViewChild(
+    object: { [key: string]: any },
+    propertyKey: string
+  ) {
+    childConstructorComponentTest = service;
+    const childRef = containerRef.get(service);
+    console.log("view child");
+    const component = childRef?.services.parent?.get(service);
+    object[propertyKey] = component;
+
+    childViews.set(service, { object, propertyKey });
   };
 }
 
@@ -254,10 +270,6 @@ export function Component(option: {
   return function defineComponent<T extends Constructor<IComponent>>(
     constructor: T
   ) {
-    // Centraliser le decorate dans le processus de construction et utiliser une option
-    // provider pour délimiter le scope. Comme dans angular
-    decorate(injectable(), constructor);
-
     const componentTemplateMetadata = new ComponentTemplateMetadata(
       constructor
     );
@@ -269,3 +281,5 @@ export function Component(option: {
     importComponentMetadata.register(option.imports ?? []);
   };
 }
+
+// Quand je voudrais désenregister un customelement (customElements.define(componentTemplate.selector, CustomElement, { extends: 'div' });)
