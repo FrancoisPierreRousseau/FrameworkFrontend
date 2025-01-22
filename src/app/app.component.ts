@@ -22,6 +22,7 @@ export class AppComponent implements IComponent {
 
   afterViewInit() {
     console.log(this.childComponent.element.nativeElement);
+    console.log("App component render");
   }
 
   // @Input() prop1, prop2...

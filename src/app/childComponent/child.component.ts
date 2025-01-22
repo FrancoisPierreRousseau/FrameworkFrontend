@@ -16,6 +16,6 @@ export class ChildComponent {
   constructor(@inject(ElementRef) public element: ElementRef<HTMLElement>) {}
 
   afterViewInit() {
-    console.log("child-component");
+    console.log("child-component render");
   }
 }

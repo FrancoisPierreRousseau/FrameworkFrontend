@@ -1,4 +1,4 @@
-import { injectable, Container } from "inversify";
+import { Container } from "inversify";
 import { IServiceCollection } from "../services/service.collection";
 
 class ComponentBuilder {
@@ -20,8 +20,8 @@ class ComponentBuilder {
       this.services
     );
 
-    this.children.forEach((child) => {
-      compponentRef.add(child.build());
+    this.children.forEach((childBuilder) => {
+      compponentRef.add(childBuilder.build());
     });
 
     return compponentRef;
@@ -63,7 +63,6 @@ export interface IComponent {
 }
 
 // Doit être géré par un renderer
-@injectable()
 export class ElementRef<TElement extends HTMLElement> {
   constructor(public nativeElement: TElement) {}
 
@@ -82,7 +81,6 @@ const childViews: Map<
 > = new Map();
 
 const containerRef = new Map<Constructor<IComponent>, ComponentRef>();
-let childConstructorComponentTest: Constructor<IComponent>;
 
 export class ComponentRef {
   public readonly services: IServiceCollection; // A revoir
@@ -100,7 +98,6 @@ export class ComponentRef {
 
   add(child: ComponentRef) {
     this.children.push(child);
-    console.log("add child");
   }
 
   // C'est au renderer de se charger de rendre ???
@@ -114,6 +111,10 @@ export class ComponentRef {
       .toSelf()
       .inSingletonScope();
 
+    // Limité l'héritage à HTMLElement (safari ne fonctionne qu'avec des CustomElement autonomne). Il ne supporte pas les éléments personalisé comme HTMLInputElement ect....
+    // Apple à pris la décision de ne jamais implémenter cette fonctionnalités
+    // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
+    // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
     class CustomElement extends HTMLElement {
       constructor() {
         super();
@@ -125,11 +126,8 @@ export class ComponentRef {
         self.services.bind(ElementRef).toConstantValue(new ElementRef(this));
 
         const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
-        const template = document.createElement("template");
 
-        template.innerHTML = componentTemplate.getHtml;
-
-        shadow.appendChild(template.content.cloneNode(true));
+        shadow.appendChild(componentTemplate.createTemplate());
       }
 
       // IMPORTANT CAR C'est ici où je pourrais savoir si les élements que je tenterai
@@ -139,25 +137,18 @@ export class ComponentRef {
         // Je pourrais créer un decorateur à utiliser dans le component pour accéder à es élement enfant.
         // Via @ViewChild
 
+        // Là j'ai un doute ...
         const component = self.services.get(componentTemplate.componentType);
         self.services.parent
           ?.bind(componentTemplate.componentType)
           .toConstantValue(component);
 
-        // Dissocier les childs du component avec un ViewChidlRed ou un ruc du genre
-        self.children.forEach((childRef) => {
-          childRef.render();
+        this.addEventListener("change", () => {
+          console.log(`${componentTemplate.selector} changed`);
         });
 
         // Doit être géré par le renderer
         document.addEventListener("DOMContentLoaded", () => {
-          const childRef = containerRef.get(childConstructorComponentTest);
-          console.log(childRef);
-          const childComponent = childRef?.services.parent?.parent?.get(
-            childConstructorComponentTest
-          );
-          console.log(childRef?.services.parent?.parent);
-
           childViews.forEach((prop, childType) => {
             const view = self.children.find(
               (childRef) => childRef === containerRef.get(childType)
@@ -173,6 +164,11 @@ export class ComponentRef {
       }
     }
 
+    // Dissocier les childs du component avec un ViewChidlRed ou un ruc du genre
+    self.children.forEach((childRef) => {
+      childRef.render();
+    });
+
     customElements.define(componentTemplate.selector, CustomElement);
   }
 }
@@ -182,9 +178,7 @@ export function ViewChild(service: Constructor<IComponent>) {
     object: { [key: string]: any },
     propertyKey: string
   ) {
-    childConstructorComponentTest = service;
     const childRef = containerRef.get(service);
-    console.log("view child");
     const component = childRef?.services.parent?.get(service);
     object[propertyKey] = component;
 
@@ -199,20 +193,32 @@ class ComponentTemplate {
     public componentType: Constructor<IComponent>
   ) {}
 
-  get getHtml() {
-    const startBalise = "<template>";
-    const endBalise = "</template>";
+  createTemplate() {
+    const html = HTML_TEMPLATES[this.template];
 
-    const html = HTML_TEMPLATES[this.template.split(".html").join("")];
+    const parser = new DOMParser();
 
-    // A voir si cela devrait se trouver dans le constructeur
-    if (!html) {
+    const template = parser
+      .parseFromString(html, "text/html")
+      .querySelector("template");
+
+    if (!template) {
       throw new Error(
         `Aucun html spécifié pour le template ${this.template}. Veuilliez verifier l'ortographe ou l'existance de votre template`
       );
     }
 
-    return html.slice(startBalise.length, -endBalise.length);
+    // Récupérer les childview (à gérer dans un systéme à part)
+    // Pas oublier de supprimer cette ref (pour netoyer le html)
+    const content = template.content;
+    const childs = [...content.children].filter((element) =>
+      [...element.attributes].some((attr) => attr.name.startsWith("#"))
+    );
+    // Je l'entregistre dans le view children. avec un systéme de clé valeur fourni par l'attribut lui même.
+    // Je pourrais donc y avoir accés via le nom de l'attribut. A voir comment gérer l'encapsulation (on a pas le droit dans
+    // le composant enfant d'avooir accés à une ref se trouvant dans le composant parent)
+
+    return content;
   }
 }
 

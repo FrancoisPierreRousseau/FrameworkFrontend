@@ -13,16 +13,12 @@ export type Constructor<T> = {
 };
 
 export class Plateform {
-  public services: IServiceCollection = new Container({
-    autoBindInjectable: true,
-  });
   private renderStrategy: RenderStrategy;
 
   constructor(
     private app: Constructor<IComponent>,
     renderStrategy?: RenderStrategy
   ) {
-    this.services.bind(Renderer).toSelf().inSingletonScope();
     this.renderStrategy = renderStrategy || new DefaultRenderStrategy();
   }
 
@@ -46,6 +42,8 @@ class DefaultRenderStrategy implements RenderStrategy {
     const componentTemplateMetadata = new ComponentTemplateMetadata(app);
 
     const services = new Container({ autoBindInjectable: true });
+    services.bind(Renderer).toSelf().inSingletonScope();
+
     const componentBuilder = ComponentFactory.create(app, services);
     const componentRef = componentBuilder.build();
     componentRef.render();

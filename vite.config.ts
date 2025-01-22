@@ -13,7 +13,7 @@ function findHtmlFiles(dir: string): Record<string, string> {
       Object.assign(fileList, findHtmlFiles(filePath)); // Récursion pour les sous-dossiers
     } else if (path.extname(file) === ".html") {
       const content = fs.readFileSync(filePath, "utf-8");
-      fileList[path.basename(file, ".html")] = content; // Utiliser le nom du fichier sans l'extension comme clé
+      fileList[file] = content;
     }
   });
 
