@@ -3,14 +3,16 @@ import { AppComponent } from "./app/app.component";
 import { Plateform } from "./core/plateform";
 
 /*
+  Formulaire: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/attachInternals#browser_compatibility
+  
   FIRST: Optimissation de la mémoire également ! 
-  Chaque component posséde son propre service. 
-  les component sont totalement indépendant. Je ne peux pas avoir accés par exemple
-  via l'injecteur de dépendance au childcomponent via le parent. Je ne peux y avoir
-  que via @ViewChild et uniquement si je lui est explicité une référence.
+  Je ne peux y avoir que via @ViewChild. 
+  Sur un element native, je peux spécifier une reference ou une classe pour 
+  selectionner des élements. 
   Idem pour les élements standard (a spécifier). Je pense que cela se faira au niveau
   du template (#ref). Ils sont déja dans le dom, pas besoin d'être mémoriser. 
-  On verra pour le standalone plus tard. 
+  On verra pour le standalone plus tard. Si j'ai besoin d'identifier des composnts 
+  distincte mais possédant la même classe, j'utiliserais la reférence pour les identifier. 
 
 
   Faire attention à l'odre de rendu des components 

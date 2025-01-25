@@ -21,7 +21,7 @@ export class AppComponent implements IComponent {
   constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}
 
   afterViewInit() {
-    console.log(this.childComponent.element.nativeElement);
+    console.log(this.childComponent);
     console.log("App component render");
   }
 

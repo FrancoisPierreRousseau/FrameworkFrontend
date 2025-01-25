@@ -4,7 +4,6 @@ import {
   ComponentTemplateMetadata,
   IComponent,
 } from "./components/component";
-import { IServiceCollection } from "./services/service.collection";
 import { Renderer } from "./render/renderer";
 
 export type Constructor<T> = {
