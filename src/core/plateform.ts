@@ -43,9 +43,9 @@ class DefaultRenderStrategy implements RenderStrategy {
     const services = new Container({ autoBindInjectable: true });
     services.bind(Renderer).toSelf().inSingletonScope();
 
-    const componentBuilder = ComponentFactory.create(app, services);
+    const componentBuilder = ComponentFactory.create(app);
     const componentRef = componentBuilder.build();
-    componentRef.render();
+    componentRef.render(services);
 
     const appElement = document.createElement(
       componentTemplateMetadata.componentTemplate.selector

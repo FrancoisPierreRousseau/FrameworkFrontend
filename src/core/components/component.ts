@@ -1,24 +1,18 @@
-import { Container, BindingScopeEnum } from "inversify";
+import { Container } from "inversify";
 import { IServiceCollection } from "../services/service.collection";
 
 class ComponentBuilder {
   private componentTemplate: ComponentTemplate;
   private children: ComponentBuilder[] = [];
 
-  constructor(
-    public services: IServiceCollection,
-    componentType: Constructor<IComponent>
-  ) {
+  constructor(componentType: Constructor<IComponent>) {
     this.componentTemplate = new ComponentTemplateMetadata(
       componentType
     ).componentTemplate;
   }
 
   build(): ComponentRef {
-    const compponentRef = new ComponentRef(
-      this.componentTemplate,
-      this.services
-    );
+    const compponentRef = new ComponentRef(this.componentTemplate);
 
     this.children.forEach((childBuilder) => {
       compponentRef.add(childBuilder.build());
@@ -33,16 +27,13 @@ class ComponentBuilder {
 }
 
 export class ComponentFactory {
-  static create(
-    componentType: Constructor<IComponent>,
-    services: IServiceCollection
-  ): ComponentBuilder {
-    const componentBuilder = new ComponentBuilder(services, componentType);
+  static create(componentType: Constructor<IComponent>): ComponentBuilder {
+    const componentBuilder = new ComponentBuilder(componentType);
 
     const imports = new ImportComponentMetada(componentType);
 
     imports.importComponents.forEach((importComponent) => {
-      const childBuilder = this.create(importComponent, services);
+      const childBuilder = this.create(importComponent);
       componentBuilder.addChild(childBuilder);
     });
 
@@ -75,28 +66,14 @@ export class ElementRef<TElement extends HTMLElement> {
 let ViewChildBuilderFn: (components: IComponent[]) => any;
 
 export class ComponentRef {
-  private readonly services: IServiceCollection; // A revoir
-
   private children: ComponentRef[] = [];
 
   public component: IComponent | null = null;
 
   public componentType: Constructor<IComponent>;
 
-  constructor(
-    private componentTemplate: ComponentTemplate,
-    services: IServiceCollection
-  ) {
-    this.services = new Container({
-      autoBindInjectable: true,
-    });
-
-    this.services.parent = services;
+  constructor(private componentTemplate: ComponentTemplate) {
     this.componentType = componentTemplate.componentType;
-    this.services
-      .bind(componentTemplate.componentType)
-      .toSelf()
-      .inTransientScope();
   }
 
   add(child: ComponentRef) {
@@ -104,7 +81,10 @@ export class ComponentRef {
   }
 
   // C'est au renderer de se charger de rendre
-  render(callBack?: (component: IComponent) => any) {
+  render(
+    services: IServiceCollection,
+    callBack?: (component: IComponent) => any
+  ) {
     const self = this;
 
     // Limité l'héritage à HTMLElement (safari ne fonctionne qu'avec des CustomElement autonomne). Il ne supporte pas les éléments personalisé comme HTMLInputElement ect....
@@ -118,6 +98,8 @@ export class ComponentRef {
       constructor() {
         super();
 
+        this.services.parent = services;
+
         this.services
           .bind(self.componentTemplate.componentType)
           .toSelf()
@@ -125,7 +107,7 @@ export class ComponentRef {
 
         // Dissocier les childs du component avec un ViewChidlRef ou un ruc du genre
         self.children.forEach((childRef) => {
-          childRef.render((component) => {
+          childRef.render(services, (component) => {
             this.components.push(component);
           });
         });

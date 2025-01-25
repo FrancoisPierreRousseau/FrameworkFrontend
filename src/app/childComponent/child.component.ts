@@ -4,6 +4,7 @@ import {
   ElementRef,
   ViewChild,
 } from "../../core/components/component";
+import { Renderer } from "../../core/render/renderer";
 
 @Component({
   selector: "child-component",
@@ -13,9 +14,12 @@ import {
 export class ChildComponent {
   @ViewChild(ChildComponent) childComponent!: ChildComponent; // Ne marche pas encore actuellement
 
-  constructor(@inject(ElementRef) public element: ElementRef<HTMLElement>) {}
+  constructor(
+    @inject(ElementRef) public element: ElementRef<HTMLElement>,
+    @inject(Renderer) public renderer: Renderer
+  ) {}
 
   afterViewInit() {
-    console.log(this.childComponent);
+    console.log(this.renderer);
   }
 }
