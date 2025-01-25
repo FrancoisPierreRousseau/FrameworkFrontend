@@ -104,7 +104,7 @@ export class ComponentRef {
   }
 
   // C'est au renderer de se charger de rendre
-  render(callBack: (component: IComponent) => any) {
+  render(callBack?: (component: IComponent) => any) {
     const self = this;
 
     // Limité l'héritage à HTMLElement (safari ne fonctionne qu'avec des CustomElement autonomne). Il ne supporte pas les éléments personalisé comme HTMLInputElement ect....
