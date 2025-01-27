@@ -1,10 +1,5 @@
 import { inject } from "inversify";
-import {
-  Component,
-  ElementRef,
-  IComponent,
-  ViewChild,
-} from "../core/components/component";
+import { Component, ElementRef, ViewChild } from "../core/components/component";
 import { ChildComponent } from "./childComponent/child.component";
 
 // Import pour importer des Component (non standalone)
@@ -15,7 +10,7 @@ import { ChildComponent } from "./childComponent/child.component";
   standalone: false,
   imports: [ChildComponent], // Générer une erreur si le ChildComponent est standalone
 })
-export class AppComponent implements IComponent {
+export class AppComponent {
   @ViewChild(ChildComponent) childComponent!: ChildComponent; // Ne marche pas encore actuellement
 
   constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}

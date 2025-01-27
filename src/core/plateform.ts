@@ -2,7 +2,6 @@ import { Container } from "inversify";
 import {
   ComponentFactory,
   ComponentTemplateMetadata,
-  IComponent,
 } from "./components/component";
 import { Renderer } from "./render/renderer";
 
@@ -14,10 +13,7 @@ export type Constructor<T> = {
 export class Plateform {
   private renderStrategy: RenderStrategy;
 
-  constructor(
-    private app: Constructor<IComponent>,
-    renderStrategy?: RenderStrategy
-  ) {
+  constructor(private app: Constructor<any>, renderStrategy?: RenderStrategy) {
     this.renderStrategy = renderStrategy || new DefaultRenderStrategy();
   }
 
@@ -27,11 +23,11 @@ export class Plateform {
 }
 
 interface RenderStrategy {
-  render(app: Constructor<IComponent>, containerId: string): void;
+  render(app: Constructor<any>, containerId: string): void;
 }
 
 class DefaultRenderStrategy implements RenderStrategy {
-  render(app: Constructor<IComponent>, containerId: string): void {
+  render(app: Constructor<any>, containerId: string): void {
     const container = document.getElementById(containerId);
 
     if (!container) {

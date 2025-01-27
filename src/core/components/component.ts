@@ -5,7 +5,7 @@ class ComponentBuilder {
   private componentTemplate: ComponentTemplate;
   private children: ComponentBuilder[] = [];
 
-  constructor(componentType: Constructor<IComponent>) {
+  constructor(componentType: Constructor<any>) {
     this.componentTemplate = new ComponentTemplateMetadata(
       componentType
     ).componentTemplate;
@@ -27,7 +27,7 @@ class ComponentBuilder {
 }
 
 export class ComponentFactory {
-  static create(componentType: Constructor<IComponent>): ComponentBuilder {
+  static create(componentType: Constructor<any>): ComponentBuilder {
     const componentBuilder = new ComponentBuilder(componentType);
 
     const imports = new ImportComponentMetada(componentType);
@@ -46,10 +46,6 @@ export type Constructor<T> = {
   prototype: T;
 };
 
-export interface IComponent {
-  afterViewInit?: () => void;
-}
-
 // Doit être géré par un renderer
 export class ElementRef<TElement extends HTMLElement> {
   constructor(public nativeElement: TElement) {}
@@ -63,12 +59,19 @@ export class ElementRef<TElement extends HTMLElement> {
   }
 }
 
-let ViewChildBuilderFn: (components: IComponent[]) => any;
+// Retournera un ViewChildBuilder.
+// Il agrégera ordenera, structurera les childs (ref, classe ectect..)
+// Il prendre le elementRef dans le constructeur au cas ou pour la selection par classe, id ect...
+// En gros via un querySelectorAll. Si un element, un element sinon un tableau
+let ViewChildFactory: (
+  components: any[],
+  elementRef: ElementRef<HTMLElement>
+) => object;
 
 export class ComponentRef {
   private children: ComponentRef[] = [];
 
-  public componentType: Constructor<IComponent>;
+  public componentType: Constructor<any>;
 
   constructor(private componentTemplate: ComponentTemplate) {
     this.componentType = componentTemplate.componentType;
@@ -81,7 +84,7 @@ export class ComponentRef {
   // C'est au renderer de se charger de rendre
   render(
     services: IServiceCollection,
-    callBack?: (component: IComponent) => any
+    callBack?: (component: any, elementRef: ElementRef<HTMLElement>) => any
   ) {
     const self = this;
 
@@ -90,9 +93,10 @@ export class ComponentRef {
     // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
     // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
     class CustomElement extends HTMLElement {
-      private childs: IComponent[] = [];
+      private childs: any[] = [];
       private services: Container = new Container({ autoBindInjectable: true });
-      private component: IComponent | null = null;
+      private component: any | null = null;
+      private elementRef: ElementRef<HTMLElement> = new ElementRef(this);
 
       constructor() {
         super();
@@ -104,21 +108,35 @@ export class ComponentRef {
           .toSelf()
           .inTransientScope();
 
+        this.elementRef = new ElementRef(this);
+
         // Dissocier les childs du component avec un ViewChidlRef ou un ruc du genre
+        // Utiliser un reducer je pense. Voir comment structurer. Gérer daans une classe à part
         self.children.forEach((childRef) => {
-          childRef.render(services, (component) => {
-            this.childs.push(component);
+          childRef.render(services, (childComponent, chidRef) => {
+            console.log(chidRef.nativeElement.attributes);
+
+            if (
+              [...chidRef.nativeElement.attributes].some((attr) =>
+                attr.name.startsWith("#")
+              )
+            ) {
+            }
+
+            //[...element.attributes].some((attr) => attr.name.startsWith("#"))
+            this.childs.push(childComponent);
           });
         });
 
         // Via le @ViewChild, je pourrais facilement rajouter des options pour implémenter un ngModel native.
-        this.services.bind(ElementRef).toConstantValue(new ElementRef(this));
+        this.services.bind(ElementRef).toConstantValue(this.elementRef);
 
         const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
 
         const template = self.componentTemplate.createTemplate();
 
         shadow.appendChild(template);
+        console.log(shadow);
       }
 
       // IMPORTANT CAR C'est ici où je pourrais savoir si les élements que je tenterai
@@ -133,15 +151,18 @@ export class ComponentRef {
         );
 
         if (callBack) {
-          callBack(this.component);
+          callBack(this.component, this.elementRef);
         }
 
         // Doit être géré par le renderer
         document.addEventListener("DOMContentLoaded", () => {
-          ViewChildBuilderFn(this.childs);
+          const object = ViewChildFactory(this.childs, this.elementRef);
 
-          if (this.component?.afterViewInit) {
-            this.component.afterViewInit();
+          if (
+            "afterViewInit" in object &&
+            typeof object["afterViewInit"] === "function"
+          ) {
+            object["afterViewInit"]();
           }
         });
       }
@@ -151,25 +172,32 @@ export class ComponentRef {
   }
 }
 
-export function ViewChild(componentType: Constructor<IComponent>) {
+export function ViewChild(componentType: Constructor<any>) {
   return function defineViewChild(
     object: { [key: string]: any },
     propertyKey: string
   ) {
-    ViewChildBuilderFn = (chidrens) => {
+    ViewChildFactory = (chidrens, elementRef) => {
       object[propertyKey] = null;
 
-      const components = chidrens.filter(
-        (component) => component.constructor === componentType
-      );
+      if (
+        typeof componentType === "function" &&
+        componentType.prototype !== undefined
+      ) {
+        const components = chidrens.filter(
+          (component) => component.constructor === componentType
+        );
 
-      if (components.length === 1) {
-        object[propertyKey] = components[0];
+        if (components.length === 1) {
+          object[propertyKey] = components[0];
+        }
+
+        if (components.length > 1) {
+          object[propertyKey] = components;
+        }
       }
 
-      if (components.length > 1) {
-        object[propertyKey] = components;
-      }
+      return object;
     };
   };
 }
@@ -178,7 +206,7 @@ class ComponentTemplate {
   constructor(
     public selector: string,
     private template: string,
-    public componentType: Constructor<IComponent>
+    public componentType: Constructor<any>
   ) {}
 
   createTemplate() {
@@ -218,7 +246,7 @@ export class ComponentTemplateMetadata {
   private readonly metadataKey = "componentTemplate";
   public componentTemplate: ComponentTemplate;
 
-  constructor(private component: Constructor<IComponent>) {
+  constructor(private component: Constructor<any>) {
     this.componentTemplate =
       Reflect.getMetadata(this.metadataKey, component) ?? {};
   }
@@ -236,14 +264,14 @@ export class ComponentTemplateMetadata {
 
 export class ImportComponentMetada {
   private readonly metadataKey = "componentImports";
-  public importComponents: Constructor<IComponent>[];
+  public importComponents: Constructor<any>[];
 
-  constructor(private component: Constructor<IComponent>) {
+  constructor(private component: Constructor<any>) {
     this.importComponents =
       Reflect.getMetadata(this.metadataKey, component) ?? [];
   }
 
-  register(importComponents: Constructor<IComponent>[]) {
+  register(importComponents: Constructor<any>[]) {
     this.importComponents = importComponents;
     Reflect.defineMetadata(
       this.metadataKey,
@@ -260,11 +288,9 @@ export function Component(option: {
   selector: string;
   template: string;
   standalone: boolean;
-  imports?: Constructor<IComponent>[];
+  imports?: Constructor<any>[];
 }) {
-  return function defineComponent<T extends Constructor<IComponent>>(
-    constructor: T
-  ) {
+  return function defineComponent<T extends Constructor<any>>(constructor: T) {
     const componentTemplateMetadata = new ComponentTemplateMetadata(
       constructor
     );
