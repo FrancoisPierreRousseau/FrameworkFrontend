@@ -3,8 +3,17 @@ import { AppComponent } from "./app/app.component";
 import { Plateform } from "./core/plateform";
 
 /*
+  First: https://github.com/angular/angular/blob/main/packages/core/src/platform/platform_ref.ts#L41 -> bootstrapModule
+         Compilation (comportement différents), chargement des ressources ect... 
+         NgModuleFactory qui retourne un NgModuleRef
+  Second: https://github.com/angular/angular/blob/main/packages/core/src/platform/bootstrap.ts#L73
+           
+
+
   Formulaire: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/attachInternals#browser_compatibility
-  
+              https://web.dev/articles/user-valid-and-user-invalid-pseudo-classes?hl=fr
+              
+
   FIRST: Optimissation de la mémoire également ! 
   Je ne peux y avoir que via @ViewChild. 
   Sur un element native, je peux spécifier une reference ou une classe pour 

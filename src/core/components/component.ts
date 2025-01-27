@@ -68,8 +68,6 @@ let ViewChildBuilderFn: (components: IComponent[]) => any;
 export class ComponentRef {
   private children: ComponentRef[] = [];
 
-  public component: IComponent | null = null;
-
   public componentType: Constructor<IComponent>;
 
   constructor(private componentTemplate: ComponentTemplate) {
@@ -92,8 +90,9 @@ export class ComponentRef {
     // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
     // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
     class CustomElement extends HTMLElement {
-      private components: IComponent[] = [];
+      private childs: IComponent[] = [];
       private services: Container = new Container({ autoBindInjectable: true });
+      private component: IComponent | null = null;
 
       constructor() {
         super();
@@ -108,7 +107,7 @@ export class ComponentRef {
         // Dissocier les childs du component avec un ViewChidlRef ou un ruc du genre
         self.children.forEach((childRef) => {
           childRef.render(services, (component) => {
-            this.components.push(component);
+            this.childs.push(component);
           });
         });
 
@@ -129,20 +128,20 @@ export class ComponentRef {
         // Je pourrais créer un decorateur à utiliser dans le component pour accéder à es élement enfant.
         // Via @ViewChild
 
-        self.component = this.services.get(
+        this.component = this.services.get(
           self.componentTemplate.componentType
         );
 
         if (callBack) {
-          callBack(self.component);
+          callBack(this.component);
         }
 
         // Doit être géré par le renderer
         document.addEventListener("DOMContentLoaded", () => {
-          ViewChildBuilderFn(this.components);
+          ViewChildBuilderFn(this.childs);
 
-          if (self.component!.afterViewInit) {
-            self.component!.afterViewInit();
+          if (this.component?.afterViewInit) {
+            this.component.afterViewInit();
           }
         });
       }
@@ -161,7 +160,7 @@ export function ViewChild(componentType: Constructor<IComponent>) {
       object[propertyKey] = null;
 
       const components = chidrens.filter(
-        (childRef) => childRef.constructor === componentType
+        (component) => component.constructor === componentType
       );
 
       if (components.length === 1) {
