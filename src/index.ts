@@ -12,7 +12,7 @@ import { Plateform } from "./core/plateform";
 
   Formulaire: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/attachInternals#browser_compatibility
               https://web.dev/articles/user-valid-and-user-invalid-pseudo-classes?hl=fr
-              
+
 
   FIRST: Optimissation de la mémoire également ! 
   Je ne peux y avoir que via @ViewChild. 
@@ -25,6 +25,11 @@ import { Plateform } from "./core/plateform";
 
 
   Faire attention à l'odre de rendu des components 
+*/
+
+/*
+  Mon renderer ne devraa pas être singleton. Chaaque component possédera son propre renderer.
+  Je l'utiliserai au destroy pour automatiser le desabonnement de chaque événement. 
 */
 
 // Utilisation de decorateur
