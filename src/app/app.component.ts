@@ -1,6 +1,7 @@
 import { inject } from "inversify";
 import { Component, ElementRef, ViewChild } from "../core/components/component";
 import { ChildComponent } from "./childComponent/child.component";
+import { OtherComponent } from "./otherComponent/other.component";
 
 // Import pour importer des Component (non standalone)
 // Si standalone alors on injecte globalement dans la Plateforme.
@@ -8,16 +9,17 @@ import { ChildComponent } from "./childComponent/child.component";
   selector: "app-main",
   template: "app.component.html",
   standalone: false,
-  imports: [ChildComponent], // Générer une erreur si le ChildComponent est standalone
+  imports: [OtherComponent], // Générer une erreur si le ChildComponent est standalone
 })
 export class AppComponent {
-  @ViewChild(ChildComponent) childComponent!: ChildComponent; // Ne marche pas encore actuellement
+  // @ViewChild(ChildComponent) childComponent!: ChildComponent; // Ne marche pas encore actuellement
+  @ViewChild(OtherComponent) otherComponent!: OtherComponent;
 
   constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}
 
   afterViewInit() {
-    console.log(this.childComponent);
-    console.log("App component render");
+    // console.log(this.childComponent);
+    // console.log(this.otherComponent);
   }
 
   // @Input() prop1, prop2...

@@ -63,10 +63,10 @@ export class ElementRef<TElement extends HTMLElement> {
 // Il agrégera ordenera, structurera les childs (ref, classe ectect..)
 // Il prendre le elementRef dans le constructeur au cas ou pour la selection par classe, id ect...
 // En gros via un querySelectorAll. Si un element, un element sinon un tableau
-let ViewChildFactory: (
+let ViewChildBuilderFn: (
   components: any[],
   elementRef: ElementRef<HTMLElement>
-) => object;
+) => void;
 
 export class ComponentRef {
   private children: ComponentRef[] = [];
@@ -110,12 +110,13 @@ export class ComponentRef {
 
         this.elementRef = new ElementRef(this);
 
+        // console.log(this.elementRef.nativeElement.querySelectorAll("[\\#]"));
+
         // Dissocier les childs du component avec un ViewChidlRef ou un ruc du genre
         // Utiliser un reducer je pense. Voir comment structurer. Gérer daans une classe à part
+
         self.children.forEach((childRef) => {
           childRef.render(services, (childComponent, chidRef) => {
-            console.log(chidRef.nativeElement.attributes);
-
             if (
               [...chidRef.nativeElement.attributes].some((attr) =>
                 attr.name.startsWith("#")
@@ -136,7 +137,6 @@ export class ComponentRef {
         const template = self.componentTemplate.createTemplate();
 
         shadow.appendChild(template);
-        console.log(shadow);
       }
 
       // IMPORTANT CAR C'est ici où je pourrais savoir si les élements que je tenterai
@@ -156,20 +156,29 @@ export class ComponentRef {
 
         // Doit être géré par le renderer
         document.addEventListener("DOMContentLoaded", () => {
-          const object = ViewChildFactory(this.childs, this.elementRef);
+          ViewChildBuilderFn(this.childs, this.elementRef);
 
           if (
-            "afterViewInit" in object &&
-            typeof object["afterViewInit"] === "function"
+            this.component.afterViewInit &&
+            typeof this.component.afterViewInit === "function"
           ) {
-            object["afterViewInit"]();
+            this.component.afterViewInit();
           }
         });
       }
     }
 
-    customElements.define(this.componentTemplate.selector, CustomElement);
+    if (customElements.get(this.componentTemplate.selector) === undefined) {
+      customElements.define(this.componentTemplate.selector, CustomElement);
+    }
   }
+}
+
+class ViewChildBuilder {
+  constructor(
+    private childs: any[],
+    private elementRef: ElementRef<HTMLElement>
+  ) {}
 }
 
 export function ViewChild(componentType: Constructor<any>) {
@@ -177,9 +186,13 @@ export function ViewChild(componentType: Constructor<any>) {
     object: { [key: string]: any },
     propertyKey: string
   ) {
-    ViewChildFactory = (chidrens, elementRef) => {
-      object[propertyKey] = null;
+    ViewChildBuilderFn = (chidrens, elementRef) => {
+      console.log(propertyKey);
+      if (propertyKey === "childOther") {
+        console.log(propertyKey);
+      }
 
+      object[propertyKey] = null;
       if (
         typeof componentType === "function" &&
         componentType.prototype !== undefined
@@ -196,8 +209,6 @@ export function ViewChild(componentType: Constructor<any>) {
           object[propertyKey] = components;
         }
       }
-
-      return object;
     };
   };
 }

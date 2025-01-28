@@ -1,0 +1,30 @@
+import { inject } from "inversify";
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+} from "../../core/components/component";
+import { Renderer } from "../../core/render/renderer";
+import { ChildComponent } from "../childComponent/child.component";
+
+@Component({
+  selector: "other-component",
+  standalone: false,
+  template: "other.component.html",
+  imports: [ChildComponent], // Générer une erreur si le ChildComponent est standalone
+  // Si childComponent paas importé alors niet, je ne peux pas l'utiliser
+})
+export class OtherComponent {
+  @ViewChild(OtherComponent) childOther!: ChildComponent; // Ne marche pas encore actuellement
+
+  constructor(
+    @inject(ElementRef) public element: ElementRef<HTMLElement>,
+    @inject(Renderer) public renderer: Renderer
+  ) {
+    console.log("childOtherConstructor");
+  }
+
+  afterViewInit() {
+    console.log(this.childOther);
+  }
+}
