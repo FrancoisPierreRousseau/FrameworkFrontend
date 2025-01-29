@@ -68,8 +68,6 @@ type ViewChildBuilderFn = (
   elementRef: ElementRef<HTMLElement>
 ) => void;
 
-let lastComponentExecute: Constructor<any>;
-
 const viewChildBuilderFns: Map<
   Constructor<any>,
   ViewChildBuilderFn[]
@@ -193,15 +191,15 @@ class ViewChildBuilder {
   ) {}
 }
 
-const Aggregaator =
-  (viewChildBuilderFn: ViewChildBuilderFn) => (component: Constructor<any>) => {
-    const builders = viewChildBuilderFns.get(component) ?? [];
-    builders.push(viewChildBuilderFn);
-    viewChildBuilderFns.set(component, builders);
-  };
+const eventComponent: {
+  [key: string]: any;
+} = {};
 
-let aggrgateChildBuilder: (component: Constructor<any>) => void;
-
+// "En bonne voie" Je passe deux fois dans le ViewChild donc j'aggrége ps les évents
+//  Dans app-comp je récupére que other-comp car c'est le dernieir qui domine. Il écase les autres
+//  handlers.
+// Je pense que pour fixe deg, je vais agréger dans un tableau les handler. Enfin, les exécuter tous dans le component.
+// Et enfin, je vais passer à undefined le component event.
 export function ViewChild(componentType: Constructor<any>) {
   return function defineViewChild(
     object: { [key: string]: any },
@@ -228,7 +226,11 @@ export function ViewChild(componentType: Constructor<any>) {
       }
     };
 
-    aggrgateChildBuilder = Aggregaator(viewChildBuilderFn);
+    eventComponent["component"] = (componentTypeMain: Constructor<any>) => {
+      const builders = viewChildBuilderFns.get(componentTypeMain) ?? [];
+      builders.push(viewChildBuilderFn);
+      viewChildBuilderFns.set(componentTypeMain, builders);
+    };
   };
 }
 
@@ -321,7 +323,7 @@ export function Component(option: {
   imports?: Constructor<any>[];
 }) {
   return function defineComponent<T extends Constructor<any>>(constructor: T) {
-    aggrgateChildBuilder(constructor);
+    eventComponent["component"](constructor);
 
     const componentTemplateMetadata = new ComponentTemplateMetadata(
       constructor
