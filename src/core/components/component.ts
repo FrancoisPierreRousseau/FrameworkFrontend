@@ -64,7 +64,7 @@ export class ElementRef<TElement extends HTMLElement> {
 // Il prendre le elementRef dans le constructeur au cas ou pour la selection par classe, id ect...
 // En gros via un querySelectorAll. Si un element, un element sinon un tableau
 type ViewChildBuilderFn = (
-  components: any[],
+  childs: Map<ElementRef<HTMLElement>, any>,
   elementRef: ElementRef<HTMLElement>
 ) => void;
 
@@ -72,6 +72,8 @@ const viewChildBuilderFns: Map<
   Constructor<any>,
   ViewChildBuilderFn[]
 > = new Map();
+
+const childs: Map<ElementRef<HTMLElement>, any> = new Map();
 
 export class ComponentRef {
   private children: ComponentRef[] = [];
@@ -93,92 +95,94 @@ export class ComponentRef {
   ) {
     const self = this;
 
-    // Limité l'héritage à HTMLElement (safari ne fonctionne qu'avec des CustomElement autonomne). Il ne supporte pas les éléments personalisé comme HTMLInputElement ect....
-    // Apple à pris la décision de ne jamais implémenter cette fonctionnalités
-    // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
-    // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
-    class CustomElement extends HTMLElement {
-      private childRef: ComponentRef[];
-      private childs: any[] = [];
-      private services: Container = new Container({ autoBindInjectable: true });
-      private component: any | null = null;
-      private elementRef: ElementRef<HTMLElement> = new ElementRef(this);
-      private componentType: Constructor<any>;
-
-      constructor() {
-        super();
-
-        this.componentType = self.componentTemplate.componentType;
-
-        this.childRef = self.children;
-
-        this.services.parent = services;
-
-        this.services.bind(this.componentType).toSelf().inTransientScope();
-
-        this.elementRef = new ElementRef(this);
-
-        // console.log(this.elementRef.nativeElement.querySelectorAll("[\\#]"));
-
-        // Dissocier les childs du component avec un ViewChidlRef ou un ruc du genre
-        // Utiliser un reducer je pense. Voir comment structurer. Gérer daans une classe à part
-
-        this.childRef.forEach((childRef) => {
-          childRef.render(services, (childComponent, chidRef) => {
-            if (
-              [...chidRef.nativeElement.attributes].some((attr) =>
-                attr.name.startsWith("#")
-              )
-            ) {
-            }
-
-            //[...element.attributes].some((attr) => attr.name.startsWith("#"))
-            this.childs.push(childComponent);
-          });
+    if (customElements.get(this.componentTemplate.selector) === undefined) {
+      // Limité l'héritage à HTMLElement (safari ne fonctionne qu'avec des CustomElement autonomne). Il ne supporte pas les éléments personalisé comme HTMLInputElement ect....
+      // Apple à pris la décision de ne jamais implémenter cette fonctionnalités
+      // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
+      // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
+      class CustomElement extends HTMLElement {
+        private childRef: ComponentRef[];
+        private services: Container = new Container({
+          autoBindInjectable: true,
         });
+        private component: any | null = null;
+        private elementRef: ElementRef<HTMLElement> = new ElementRef(this);
+        private componentType: Constructor<any>;
 
-        // Via le @ViewChild, je pourrais facilement rajouter des options pour implémenter un ngModel native.
-        this.services.bind(ElementRef).toConstantValue(this.elementRef);
+        constructor() {
+          super();
 
-        const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
+          this.componentType = self.componentTemplate.componentType;
 
-        const template = self.componentTemplate.createTemplate();
+          this.childRef = self.children;
 
-        shadow.appendChild(template);
-      }
+          this.services.parent = services;
 
-      // IMPORTANT CAR C'est ici où je pourrais savoir si les élements que je tenterai
-      // d'injecté on été rendu par le dom
-      connectedCallback() {
-        // Je pourrais enregistrer dans l'injecteur de dépendence le (this)
-        // Je pourrais créer un decorateur à utiliser dans le component pour accéder à es élement enfant.
-        // Via @ViewChild
+          this.services.bind(this.componentType).toSelf().inTransientScope();
 
-        this.component = this.services.get(this.componentType);
+          this.elementRef = new ElementRef(this);
 
-        if (callBack) {
-          callBack(this.component, this.elementRef);
+          // console.log(this.elementRef.nativeElement.querySelectorAll("[\\#]"));
+
+          // Dissocier les childs du component avec un ViewChidlRef ou un ruc du genre
+          // Utiliser un reducer je pense. Voir comment structurer. Gérer daans une classe à part
+
+          this.childRef.forEach((childRef) => {
+            childRef.render(services, (childComponent, chidRef) => {
+              //   if (
+              //     [...chidRef.nativeElement.attributes].some((attr) =>
+              //       attr.name.startsWith("#")
+              //     )
+              //   ) {
+              //   }
+
+              childs.set(chidRef, childComponent);
+
+              //[...element.attributes].some((attr) => attr.name.startsWith("#"))
+            });
+          });
+
+          // Via le @ViewChild, je pourrais facilement rajouter des options pour implémenter un ngModel native.
+          this.services.bind(ElementRef).toConstantValue(this.elementRef);
+
+          const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
+
+          const template = self.componentTemplate.createTemplate();
+
+          shadow.appendChild(template);
         }
 
-        // Doit être géré par le renderer
-        document.addEventListener("DOMContentLoaded", () => {
-          (viewChildBuilderFns.get(this.componentType) ?? []).forEach(
-            (viewChildBuilderFn) => {
-              viewChildBuilderFn(this.childs, this.elementRef);
-            }
-          );
+        // IMPORTANT CAR C'est ici où je pourrais savoir si les élements que je tenterai
+        // d'injecté on été rendu par le dom
+        connectedCallback() {
+          // Je pourrais enregistrer dans l'injecteur de dépendence le (this)
+          // Je pourrais créer un decorateur à utiliser dans le component pour accéder à es élement enfant.
+          // Via @ViewChild
 
-          if (
-            this.component.afterViewInit &&
-            typeof this.component.afterViewInit === "function"
-          ) {
-            this.component.afterViewInit();
+          this.component = this.services.get(this.componentType);
+
+          if (callBack) {
+            callBack(this.component, this.elementRef);
           }
-        });
-      }
-    }
 
-    if (customElements.get(this.componentTemplate.selector) === undefined) {
+          // Doit être géré par le renderer
+          document.addEventListener("DOMContentLoaded", () => {
+            (viewChildBuilderFns.get(this.componentType) ?? []).forEach(
+              (viewChildBuilderFn) => {
+                viewChildBuilderFn(childs, this.elementRef);
+              }
+            );
+
+            if (
+              this.component.afterViewInit &&
+              typeof this.component.afterViewInit === "function"
+            ) {
+              this.component.afterViewInit();
+            }
+          });
+        }
+      }
+
       customElements.define(this.componentTemplate.selector, CustomElement);
     }
   }
@@ -195,6 +199,8 @@ const eventComponent: {
   [key: string]: any;
 } = {};
 
+let builders: ViewChildBuilderFn[] = [];
+
 // "En bonne voie" Je passe deux fois dans le ViewChild donc j'aggrége ps les évents
 //  Dans app-comp je récupére que other-comp car c'est le dernieir qui domine. Il écase les autres
 //  handlers.
@@ -208,28 +214,40 @@ export function ViewChild(componentType: Constructor<any>) {
     object[propertyKey] = null;
 
     const viewChildBuilderFn: ViewChildBuilderFn = (chidrens, elementRef) => {
+      const components: any[] = [];
+
+      [...chidrens.entries()].forEach(([childRef, element]) => {
+        if (
+          (childRef.nativeElement.getRootNode() as ShadowRoot).host ===
+          elementRef.nativeElement
+        ) {
+          components.push(element);
+        }
+      });
+
       if (
         typeof componentType === "function" &&
         componentType.prototype !== undefined
       ) {
-        const components = chidrens.filter(
+        const childsComponent = components.filter(
           (component) => component.constructor === componentType
         );
 
-        if (components.length === 1) {
-          object[propertyKey] = components[0];
+        if (childsComponent.length === 1) {
+          object[propertyKey] = childsComponent[0];
         }
 
-        if (components.length > 1) {
-          object[propertyKey] = components;
+        if (childsComponent.length > 1) {
+          object[propertyKey] = childsComponent;
         }
       }
     };
 
+    builders.push(viewChildBuilderFn);
+
     eventComponent["component"] = (componentTypeMain: Constructor<any>) => {
-      const builders = viewChildBuilderFns.get(componentTypeMain) ?? [];
-      builders.push(viewChildBuilderFn);
       viewChildBuilderFns.set(componentTypeMain, builders);
+      builders = [];
     };
   };
 }
