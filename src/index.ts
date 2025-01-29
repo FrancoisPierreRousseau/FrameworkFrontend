@@ -14,7 +14,10 @@ import { Plateform } from "./core/plateform";
               https://web.dev/articles/user-valid-and-user-invalid-pseudo-classes?hl=fr
 
 
-  FIRST: Optimissation de la mémoire également ! 
+  FIRST: 
+  Simplification en connectant les imports avec ce que je passe en paramétre dans mon viewchild 
+  et assurer plus de coherence. 
+  Optimissation de la mémoire également ! 
   Je ne peux y avoir que via @ViewChild. 
   Sur un element native, je peux spécifier une reference ou une classe pour 
   selectionner des élements. 

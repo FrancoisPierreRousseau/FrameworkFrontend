@@ -243,6 +243,8 @@ export function ViewChild(componentType: Constructor<any>) {
       }
     };
 
+    
+
     builders.push(viewChildBuilderFn);
 
     eventComponent["component"] = (componentTypeMain: Constructor<any>) => {
