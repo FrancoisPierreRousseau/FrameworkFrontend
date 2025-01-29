@@ -12,7 +12,7 @@ import { Renderer } from "../../core/render/renderer";
   template: "child.component.html",
 })
 export class ChildComponent {
-  // @ViewChild(ChildComponent) childComponent!: ChildComponent; // Ne marche pas encore actuellement
+  @ViewChild(ChildComponent) childComponent!: ChildComponent; // Ne marche pas encore actuellement
 
   constructor(
     @inject(ElementRef) public element: ElementRef<HTMLElement>,
@@ -20,6 +20,6 @@ export class ChildComponent {
   ) {}
 
   afterViewInit() {
-    console.log("ChildComponent");
+    console.log(this.childComponent);
   }
 }

@@ -36,6 +36,7 @@ function htmlStringLoader(): Plugin {
 export default defineConfig({
   plugins: [htmlStringLoader()],
   build: {
+    sourcemap: true,
     rollupOptions: {
       input: {
         main: "./src/index.html",

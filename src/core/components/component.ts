@@ -63,10 +63,17 @@ export class ElementRef<TElement extends HTMLElement> {
 // Il agrégera ordenera, structurera les childs (ref, classe ectect..)
 // Il prendre le elementRef dans le constructeur au cas ou pour la selection par classe, id ect...
 // En gros via un querySelectorAll. Si un element, un element sinon un tableau
-let ViewChildBuilderFn: (
+type ViewChildBuilderFn = (
   components: any[],
   elementRef: ElementRef<HTMLElement>
 ) => void;
+
+let lastComponentExecute: Constructor<any>;
+
+const viewChildBuilderFns: Map<
+  Constructor<any>,
+  ViewChildBuilderFn[]
+> = new Map();
 
 export class ComponentRef {
   private children: ComponentRef[] = [];
@@ -93,20 +100,23 @@ export class ComponentRef {
     // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
     // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
     class CustomElement extends HTMLElement {
+      private childRef: ComponentRef[];
       private childs: any[] = [];
       private services: Container = new Container({ autoBindInjectable: true });
       private component: any | null = null;
       private elementRef: ElementRef<HTMLElement> = new ElementRef(this);
+      private componentType: Constructor<any>;
 
       constructor() {
         super();
 
+        this.componentType = self.componentTemplate.componentType;
+
+        this.childRef = self.children;
+
         this.services.parent = services;
 
-        this.services
-          .bind(self.componentTemplate.componentType)
-          .toSelf()
-          .inTransientScope();
+        this.services.bind(this.componentType).toSelf().inTransientScope();
 
         this.elementRef = new ElementRef(this);
 
@@ -115,7 +125,7 @@ export class ComponentRef {
         // Dissocier les childs du component avec un ViewChidlRef ou un ruc du genre
         // Utiliser un reducer je pense. Voir comment structurer. Gérer daans une classe à part
 
-        self.children.forEach((childRef) => {
+        this.childRef.forEach((childRef) => {
           childRef.render(services, (childComponent, chidRef) => {
             if (
               [...chidRef.nativeElement.attributes].some((attr) =>
@@ -146,9 +156,7 @@ export class ComponentRef {
         // Je pourrais créer un decorateur à utiliser dans le component pour accéder à es élement enfant.
         // Via @ViewChild
 
-        this.component = this.services.get(
-          self.componentTemplate.componentType
-        );
+        this.component = this.services.get(this.componentType);
 
         if (callBack) {
           callBack(this.component, this.elementRef);
@@ -156,7 +164,11 @@ export class ComponentRef {
 
         // Doit être géré par le renderer
         document.addEventListener("DOMContentLoaded", () => {
-          ViewChildBuilderFn(this.childs, this.elementRef);
+          (viewChildBuilderFns.get(this.componentType) ?? []).forEach(
+            (viewChildBuilderFn) => {
+              viewChildBuilderFn(this.childs, this.elementRef);
+            }
+          );
 
           if (
             this.component.afterViewInit &&
@@ -181,18 +193,23 @@ class ViewChildBuilder {
   ) {}
 }
 
+const Aggregaator =
+  (viewChildBuilderFn: ViewChildBuilderFn) => (component: Constructor<any>) => {
+    const builders = viewChildBuilderFns.get(component) ?? [];
+    builders.push(viewChildBuilderFn);
+    viewChildBuilderFns.set(component, builders);
+  };
+
+let aggrgateChildBuilder: (component: Constructor<any>) => void;
+
 export function ViewChild(componentType: Constructor<any>) {
   return function defineViewChild(
     object: { [key: string]: any },
     propertyKey: string
   ) {
-    ViewChildBuilderFn = (chidrens, elementRef) => {
-      console.log(propertyKey);
-      if (propertyKey === "childOther") {
-        console.log(propertyKey);
-      }
+    object[propertyKey] = null;
 
-      object[propertyKey] = null;
+    const viewChildBuilderFn: ViewChildBuilderFn = (chidrens, elementRef) => {
       if (
         typeof componentType === "function" &&
         componentType.prototype !== undefined
@@ -210,6 +227,8 @@ export function ViewChild(componentType: Constructor<any>) {
         }
       }
     };
+
+    aggrgateChildBuilder = Aggregaator(viewChildBuilderFn);
   };
 }
 
@@ -302,6 +321,8 @@ export function Component(option: {
   imports?: Constructor<any>[];
 }) {
   return function defineComponent<T extends Constructor<any>>(constructor: T) {
+    aggrgateChildBuilder(constructor);
+
     const componentTemplateMetadata = new ComponentTemplateMetadata(
       constructor
     );

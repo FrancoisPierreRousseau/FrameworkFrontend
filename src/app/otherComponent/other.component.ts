@@ -15,16 +15,14 @@ import { ChildComponent } from "../childComponent/child.component";
   // Si childComponent paas importé alors niet, je ne peux pas l'utiliser
 })
 export class OtherComponent {
-  @ViewChild(OtherComponent) childOther!: ChildComponent; // Ne marche pas encore actuellement
+  @ViewChild(ChildComponent) otherComponent!: ChildComponent; // Ne marche pas encore actuellement
 
   constructor(
     @inject(ElementRef) public element: ElementRef<HTMLElement>,
     @inject(Renderer) public renderer: Renderer
-  ) {
-    console.log("childOtherConstructor");
-  }
+  ) {}
 
   afterViewInit() {
-    console.log(this.childOther);
+    console.log(this.otherComponent);
   }
 }
