@@ -1,43 +1,20 @@
 import { Container } from "inversify";
 import { IServiceCollection } from "../services/service.collection";
 
-class ComponentBuilder {
-  private componentTemplate: ComponentTemplate;
-  private children: ComponentBuilder[] = [];
-
-  constructor(componentType: Constructor<any>) {
-    this.componentTemplate = new ComponentTemplateMetadata(
-      componentType
-    ).componentTemplate;
-  }
-
-  build(): ComponentRef {
-    const compponentRef = new ComponentRef(this.componentTemplate);
-
-    this.children.forEach((childBuilder) => {
-      compponentRef.add(childBuilder.build());
-    });
-
-    return compponentRef;
-  }
-
-  addChild(child: ComponentBuilder): void {
-    this.children.push(child);
-  }
-}
-
 export class ComponentFactory {
-  static create(componentType: Constructor<any>): ComponentBuilder {
-    const componentBuilder = new ComponentBuilder(componentType);
+  static create(componentType: Constructor<any>): ComponentRef {
+    const componentTemplate = new ComponentTemplateMetadata(componentType)
+      .componentTemplate;
 
+    const componentRef = new ComponentRef(componentTemplate);
     const imports = new ImportComponentMetada(componentType);
 
     imports.importComponents.forEach((importComponent) => {
-      const childBuilder = this.create(importComponent);
-      componentBuilder.addChild(childBuilder);
+      const childComponentRef = this.create(importComponent);
+      componentRef.add(childComponentRef);
     });
 
-    return componentBuilder;
+    return componentRef;
   }
 }
 
@@ -189,10 +166,15 @@ export class ComponentRef {
 }
 
 class ViewChildBuilder {
-  constructor(
-    private childs: any[],
-    private elementRef: ElementRef<HTMLElement>
-  ) {}
+  private viewchildsBuilders: ViewChildBuilder[] = [];
+
+  constructor(private object: object, private propertyKey: string) {}
+
+  public add(viewChildBuilder: ViewChildBuilder) {
+    this.viewchildsBuilders.push(viewChildBuilder);
+  }
+
+  build() {}
 }
 
 const eventComponent: {
@@ -242,8 +224,6 @@ export function ViewChild(componentType: Constructor<any>) {
         }
       }
     };
-
-    
 
     builders.push(viewChildBuilderFn);
 
