@@ -1,6 +1,31 @@
 import { Container } from "inversify";
 import { IServiceCollection } from "../services/service.collection";
 
+class ViewChildSubject {
+  private observers: Map<Constructor<any>, ViewChildBuilderFn[]> = new Map();
+
+  constructor() {}
+
+  subscribe(componentType: Constructor<any>, builderFn: ViewChildBuilderFn) {
+    const observers = this.observers.get(componentType) || [];
+    observers.push(builderFn);
+    this.observers.set(componentType, observers);
+  }
+
+  notify(
+    componentType: Constructor<any>,
+    childs: Map<ElementRef<HTMLElement>, any>,
+    elementRef: ElementRef<HTMLElement>
+  ) {
+    const observers = this.observers.get(componentType) || [];
+    observers.forEach((observer) => observer(childs, elementRef));
+  }
+}
+
+const viewChildSubject = new ViewChildSubject();
+
+let builders: ViewChildBuilderFn[] = [];
+
 export class ComponentFactory {
   static create(componentType: Constructor<any>): ComponentRef {
     const componentTemplate = new ComponentTemplateMetadata(componentType)
@@ -44,11 +69,6 @@ type ViewChildBuilderFn = (
   childs: Map<ElementRef<HTMLElement>, any>,
   elementRef: ElementRef<HTMLElement>
 ) => void;
-
-const viewChildBuilderFns: Map<
-  Constructor<any>,
-  ViewChildBuilderFn[]
-> = new Map();
 
 const childs: Map<ElementRef<HTMLElement>, any> = new Map();
 
@@ -144,10 +164,10 @@ export class ComponentRef {
 
           // Doit être géré par le renderer
           document.addEventListener("DOMContentLoaded", () => {
-            (viewChildBuilderFns.get(this.componentType) ?? []).forEach(
-              (viewChildBuilderFn) => {
-                viewChildBuilderFn(childs, this.elementRef);
-              }
+            viewChildSubject.notify(
+              this.componentType,
+              childs,
+              this.elementRef
             );
 
             if (
@@ -165,29 +185,6 @@ export class ComponentRef {
   }
 }
 
-class ViewChildBuilder {
-  private viewchildsBuilders: ViewChildBuilder[] = [];
-
-  constructor(private object: object, private propertyKey: string) {}
-
-  public add(viewChildBuilder: ViewChildBuilder) {
-    this.viewchildsBuilders.push(viewChildBuilder);
-  }
-
-  build() {}
-}
-
-const eventComponent: {
-  [key: string]: any;
-} = {};
-
-let builders: ViewChildBuilderFn[] = [];
-
-// "En bonne voie" Je passe deux fois dans le ViewChild donc j'aggrége ps les évents
-//  Dans app-comp je récupére que other-comp car c'est le dernieir qui domine. Il écase les autres
-//  handlers.
-// Je pense que pour fixe deg, je vais agréger dans un tableau les handler. Enfin, les exécuter tous dans le component.
-// Et enfin, je vais passer à undefined le component event.
 export function ViewChild(componentType: Constructor<any>) {
   return function defineViewChild(
     object: { [key: string]: any },
@@ -226,11 +223,6 @@ export function ViewChild(componentType: Constructor<any>) {
     };
 
     builders.push(viewChildBuilderFn);
-
-    eventComponent["component"] = (componentTypeMain: Constructor<any>) => {
-      viewChildBuilderFns.set(componentTypeMain, builders);
-      builders = [];
-    };
   };
 }
 
@@ -323,7 +315,11 @@ export function Component(option: {
   imports?: Constructor<any>[];
 }) {
   return function defineComponent<T extends Constructor<any>>(constructor: T) {
-    eventComponent["component"](constructor);
+    builders.forEach((builderFn) => {
+      viewChildSubject.subscribe(constructor, builderFn);
+    });
+
+    builders = [];
 
     const componentTemplateMetadata = new ComponentTemplateMetadata(
       constructor
