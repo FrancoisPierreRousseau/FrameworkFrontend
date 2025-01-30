@@ -15,9 +15,6 @@ import { Plateform } from "./core/plateform";
 
 
   FIRST: 
-  Constructon des ViewChilds = Simplification en connectant les imports avec ce que je passe en paramétre dans mon viewchild 
-  et le constructeur de mon component pour assurer plus de coherence
-
   Optimissation de la mémoire également ! 
   Je ne peux y avoir que via @ViewChild. 
   Sur un element native, je peux spécifier une reference ou une classe pour 

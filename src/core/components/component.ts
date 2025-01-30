@@ -6,9 +6,12 @@ class ViewChildSubject {
 
   constructor() {}
 
-  subscribe(componentType: Constructor<any>, builderFn: ViewChildBuilderFn) {
+  subscribe(
+    componentType: Constructor<any>,
+    ...builderFn: ViewChildBuilderFn[]
+  ) {
     const observers = this.observers.get(componentType) || [];
-    observers.push(builderFn);
+    observers.push(...builderFn);
     this.observers.set(componentType, observers);
   }
 
@@ -315,9 +318,7 @@ export function Component(option: {
   imports?: Constructor<any>[];
 }) {
   return function defineComponent<T extends Constructor<any>>(constructor: T) {
-    builders.forEach((builderFn) => {
-      viewChildSubject.subscribe(constructor, builderFn);
-    });
+    viewChildSubject.subscribe(constructor, ...builders);
 
     builders = [];
 
