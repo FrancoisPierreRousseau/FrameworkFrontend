@@ -9,7 +9,11 @@ export class ComponentFactory {
     const { componentTemplate } = new ComponentTemplateMetadata(componentType);
     const componentRef = new ComponentRef(componentTemplate);
 
-    if (!ComponentFactory.componentRefs.some((ref) => componentRef === ref)) {
+    if (
+      !ComponentFactory.componentRefs.some(
+        (ref) => componentRef.componentType === ref.componentType
+      )
+    ) {
       ComponentFactory.componentRefs.push(componentRef);
     }
 
@@ -44,89 +48,81 @@ export class ElementRef<TElement extends HTMLElement> {
 const components: Map<ElementRef<HTMLElement>, any> = new Map();
 
 export class ComponentRef {
-  private children: ComponentRef[] = [];
-
   public componentType: Constructor<any>;
 
   constructor(private componentTemplate: ComponentTemplate) {
     this.componentType = componentTemplate.componentType;
   }
 
-  add(child: ComponentRef) {
-    this.children.push(child);
-  }
-
   // C'est au renderer de se charger de rendre
   render(services: IServiceCollection) {
     const self = this;
 
-    if (customElements.get(this.componentTemplate.selector) === undefined) {
-      // Limité l'héritage à HTMLElement (safari ne fonctionne qu'avec des CustomElement autonomne). Il ne supporte pas les éléments personalisé comme HTMLInputElement ect....
-      // Apple à pris la décision de ne jamais implémenter cette fonctionnalités
-      // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
-      // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
-      class CustomElement extends HTMLElement {
-        private services: Container = new Container({
-          autoBindInjectable: true,
-        });
-        private component: any | null = null;
-        private elementRef: ElementRef<HTMLElement> = new ElementRef(this);
-        private componentType: Constructor<any>;
+    // Limité l'héritage à HTMLElement (safari ne fonctionne qu'avec des CustomElement autonomne). Il ne supporte pas les éléments personalisé comme HTMLInputElement ect....
+    // Apple à pris la décision de ne jamais implémenter cette fonctionnalités
+    // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
+    // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
+    class CustomElement extends HTMLElement {
+      private services: Container = new Container({
+        autoBindInjectable: true,
+      });
+      private component: any | null = null;
+      private elementRef: ElementRef<HTMLElement> = new ElementRef(this);
+      private componentType: Constructor<any>;
 
-        constructor() {
-          super();
+      constructor() {
+        super();
 
-          this.componentType = self.componentTemplate.componentType;
+        this.componentType = self.componentTemplate.componentType;
 
-          this.services.parent = services;
+        this.services.parent = services;
 
-          this.services.bind(this.componentType).toSelf().inTransientScope();
+        this.services.bind(this.componentType).toSelf().inTransientScope();
 
-          this.elementRef = new ElementRef(this);
+        this.elementRef = new ElementRef(this);
 
-          // console.log(this.elementRef.nativeElement.querySelectorAll("[\\#]"));
+        // console.log(this.elementRef.nativeElement.querySelectorAll("[\\#]"));
 
-          // Via le @ViewChild, je pourrais facilement rajouter des options pour implémenter un ngModel native.
-          this.services.bind(ElementRef).toConstantValue(this.elementRef);
+        // Via le @ViewChild, je pourrais facilement rajouter des options pour implémenter un ngModel native.
+        this.services.bind(ElementRef).toConstantValue(this.elementRef);
 
-          const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
+        const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
 
-          const template = self.componentTemplate.createTemplate();
+        const template = self.componentTemplate.createTemplate();
 
-          shadow.appendChild(template);
-        }
-
-        // IMPORTANT CAR C'est ici où je pourrais savoir si les élements que je tenterai
-        // d'injecté on été rendu par le dom
-        connectedCallback() {
-          // Je pourrais enregistrer dans l'injecteur de dépendence le (this)
-          // Je pourrais créer un decorateur à utiliser dans le component pour accéder à es élement enfant.
-          // Via @ViewChild
-
-          this.component = this.services.get(this.componentType);
-
-          components.set(this.elementRef, this.component);
-
-          // Doit être géré par le renderer
-          document.addEventListener("DOMContentLoaded", () => {
-            viewChildSubject.notify(
-              this.componentType,
-              components,
-              this.elementRef
-            );
-
-            if (
-              this.component.afterViewInit &&
-              typeof this.component.afterViewInit === "function"
-            ) {
-              this.component.afterViewInit();
-            }
-          });
-        }
+        shadow.appendChild(template);
       }
 
-      customElements.define(this.componentTemplate.selector, CustomElement);
+      // IMPORTANT CAR C'est ici où je pourrais savoir si les élements que je tenterai
+      // d'injecté on été rendu par le dom
+      connectedCallback() {
+        // Je pourrais enregistrer dans l'injecteur de dépendence le (this)
+        // Je pourrais créer un decorateur à utiliser dans le component pour accéder à es élement enfant.
+        // Via @ViewChild
+
+        this.component = this.services.get(this.componentType);
+
+        components.set(this.elementRef, this.component);
+
+        // Doit être géré par le renderer
+        document.addEventListener("DOMContentLoaded", () => {
+          viewChildSubject.notify(
+            this.componentType,
+            components,
+            this.elementRef
+          );
+
+          if (
+            this.component.afterViewInit &&
+            typeof this.component.afterViewInit === "function"
+          ) {
+            this.component.afterViewInit();
+          }
+        });
+      }
     }
+
+    customElements.define(this.componentTemplate.selector, CustomElement);
   }
 }
 
