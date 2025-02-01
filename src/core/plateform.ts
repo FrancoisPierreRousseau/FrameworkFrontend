@@ -1,7 +1,9 @@
 import { Container } from "inversify";
 import {
   ComponentFactory,
+  ComponentRef,
   ComponentTemplateMetadata,
+  ElementRef,
 } from "./components/component";
 import { Renderer } from "./render/renderer";
 
@@ -37,8 +39,12 @@ class DefaultRenderStrategy implements RenderStrategy {
     const services = new Container({ autoBindInjectable: true });
     services.bind(Renderer).toSelf().inSingletonScope();
 
-    const componentRefs = ComponentFactory.create(app);
-    componentRefs.forEach((ref) => ref.render(services));
+    const components: Map<ElementRef<HTMLElement>, any> = new Map();
+    const componentTemplates = ComponentFactory.create(app);
+    const render = new ComponentRef(); // Ici la placer dans renderer
+    componentTemplates.forEach((template) =>
+      render.render(services, template, components)
+    );
 
     const componentTemplateMetadata = new ComponentTemplateMetadata(app);
 

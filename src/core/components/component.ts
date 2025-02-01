@@ -3,19 +3,11 @@ import { IServiceCollection } from "../services/service.collection";
 import { viewChildFn, viewChildSubject } from "../authoring/queries";
 
 export class ComponentFactory {
-  private static componentRefs: ComponentRef[] = [];
+  private static componentTemplates: Set<ComponentTemplate> = new Set();
 
-  static create(componentType: Constructor<any>): ComponentRef[] {
+  static create(componentType: Constructor<any>): ComponentTemplate[] {
     const { componentTemplate } = new ComponentTemplateMetadata(componentType);
-    const componentRef = new ComponentRef(componentTemplate);
-
-    if (
-      !ComponentFactory.componentRefs.some(
-        (ref) => componentRef.componentType === ref.componentType
-      )
-    ) {
-      ComponentFactory.componentRefs.push(componentRef);
-    }
+    ComponentFactory.componentTemplates.add(componentTemplate);
 
     const imports = new ImportComponentMetada(componentType);
 
@@ -23,7 +15,7 @@ export class ComponentFactory {
       this.create(importComponent);
     });
 
-    return ComponentFactory.componentRefs;
+    return [...ComponentFactory.componentTemplates.values()];
   }
 }
 
@@ -45,17 +37,15 @@ export class ElementRef<TElement extends HTMLElement> {
   }
 }
 
-const components: Map<ElementRef<HTMLElement>, any> = new Map();
-
 export class ComponentRef {
-  public componentType: Constructor<any>;
-
-  constructor(private componentTemplate: ComponentTemplate) {
-    this.componentType = componentTemplate.componentType;
-  }
+  constructor() {}
 
   // C'est au renderer de se charger de rendre
-  render(services: IServiceCollection) {
+  render(
+    services: IServiceCollection,
+    componentTemplate: ComponentTemplate,
+    components: Map<ElementRef<HTMLElement>, any>
+  ) {
     const self = this;
 
     // Limité l'héritage à HTMLElement (safari ne fonctionne qu'avec des CustomElement autonomne). Il ne supporte pas les éléments personalisé comme HTMLInputElement ect....
@@ -73,7 +63,7 @@ export class ComponentRef {
       constructor() {
         super();
 
-        this.componentType = self.componentTemplate.componentType;
+        this.componentType = componentTemplate.componentType;
 
         this.services.parent = services;
 
@@ -88,7 +78,7 @@ export class ComponentRef {
 
         const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
 
-        const template = self.componentTemplate.createTemplate();
+        const template = componentTemplate.createTemplate();
 
         shadow.appendChild(template);
       }
@@ -122,7 +112,7 @@ export class ComponentRef {
       }
     }
 
-    customElements.define(this.componentTemplate.selector, CustomElement);
+    customElements.define(componentTemplate.selector, CustomElement);
   }
 }
 
