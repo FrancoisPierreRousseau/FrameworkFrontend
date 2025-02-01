@@ -39,12 +39,10 @@ class DefaultRenderStrategy implements RenderStrategy {
     const services = new Container({ autoBindInjectable: true });
     services.bind(Renderer).toSelf().inSingletonScope();
 
-    const components: Map<ElementRef<HTMLElement>, any> = new Map();
     const componentTemplates = ComponentFactory.create(app);
 
     componentTemplates.forEach((template) => {
-      registerComponent(services, template, components)
-      services.get(Renderer).renderer(template)
+      registerComponent(services, template);
     });
 
     const componentTemplateMetadata = new ComponentTemplateMetadata(app);

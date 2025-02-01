@@ -7,28 +7,22 @@ import {
 import { IServiceCollection } from "../services/service.collection";
 import { viewChildSubject } from "../authoring/queries";
 
-export interface ICustomElement {
-  componentType: Constructor<any>;
-  elementRef: ElementRef<HTMLElement>;
-}
-
 export const registerComponent = (
   services: IServiceCollection,
-  componentTemplate: ComponentTemplate,
-  components: Map<ElementRef<HTMLElement>, any>
+  componentTemplate: ComponentTemplate
 ) => {
   // C'est au renderer de se charger de rendre
   // Limité l'héritage à HTMLElement (safari ne fonctionne qu'avec des CustomElement autonomne). Il ne supporte pas les éléments personalisé comme HTMLInputElement ect....
   // Apple à pris la décision de ne jamais implémenter cette fonctionnalités
   // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
   // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
-  class CustomElement extends HTMLElement implements ICustomElement {
+  class CustomElement extends HTMLElement {
     private services: IServiceCollection = new Container({
       autoBindInjectable: true,
     });
     private component: any | null = null;
-    public elementRef: ElementRef<HTMLElement> = new ElementRef(this);
-    public componentType: Constructor<any>;
+    private elementRef: ElementRef<HTMLElement> = new ElementRef(this);
+    private componentType: Constructor<any>;
 
     constructor() {
       super();
@@ -52,13 +46,7 @@ export const registerComponent = (
     }
 
     async connectedCallback() {
-      await this.afterViewInit();
-    }
-
-    private async afterViewInit() {
       this.component = this.services.get(this.componentType);
-
-      components.set(this.elementRef, this.component);
 
       const tags = [
         ...new Set(
@@ -72,7 +60,14 @@ export const registerComponent = (
 
       await Promise.all(promises);
 
-      viewChildSubject.notify(this.componentType, components, this.elementRef);
+      const childs = [...(this.shadowRoot?.querySelectorAll(":defined") ?? [])]
+        .filter((element) => customElements.get(element.tagName.toLowerCase()))
+        .map((element) => {
+          customElements.upgrade(element);
+          return (element as CustomElement).component;
+        });
+
+      viewChildSubject.notify(this.componentType, childs);
 
       if (
         this.component.afterViewInit &&

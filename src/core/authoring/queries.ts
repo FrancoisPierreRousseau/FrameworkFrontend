@@ -2,13 +2,9 @@
 // Il agrégera ordenera, structurera les childs (ref, classe ectect..)
 // Il prendre le elementRef dans le constructeur au cas ou pour la selection par classe, id ect...
 
-import { Constructor, ElementRef } from "../components/component";
+import { Constructor } from "../components/component";
 
-// En gros via un querySelectorAll. Si un element, un element sinon un tableau
-export type ViewChildBuilderFn = (
-  childs: Map<ElementRef<HTMLElement>, any>,
-  rootRef: ElementRef<HTMLElement>
-) => void;
+type ViewChildBuilderFn = (childs: any[]) => void;
 
 let builders: ViewChildBuilderFn[] = [];
 
@@ -26,13 +22,9 @@ class ViewChildSubject {
     this.observers.set(componentType, observers);
   }
 
-  notify(
-    componentType: Constructor<any>,
-    childs: Map<ElementRef<HTMLElement>, any>,
-    elementRef: ElementRef<HTMLElement>
-  ) {
+  notify(componentType: Constructor<any>, childs: any[]) {
     const observers = this.observers.get(componentType) || [];
-    observers.forEach((observer) => observer(childs, elementRef));
+    observers.forEach((observer) => observer(childs));
   }
 }
 
@@ -45,17 +37,10 @@ export function ViewChild(componentType: Constructor<any>) {
   ) {
     object[propertyKey] = null;
 
-    const viewChildBuilderFn: ViewChildBuilderFn = (childViews, rootRef) => {
-      const components: any[] = [];
-
-      [...childViews.entries()].forEach(([childRef, element]) => {
-        if (
-          (childRef.nativeElement.getRootNode() as ShadowRoot).host ===
-          rootRef.nativeElement
-        ) {
-          components.push(element);
-        }
-      });
+    const viewChildBuilderFn: ViewChildBuilderFn = (childViews) => {
+      const components: any[] = childViews.filter(
+        (child) => child.constructor === componentType
+      );
 
       if (
         typeof componentType === "function" &&
