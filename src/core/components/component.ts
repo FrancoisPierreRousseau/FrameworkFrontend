@@ -3,17 +3,23 @@ import { IServiceCollection } from "../services/service.collection";
 import { viewChildFn, viewChildSubject } from "../authoring/queries";
 
 export class ComponentFactory {
-  static create(componentType: Constructor<any>): ComponentRef {
+  private static componentRefs: ComponentRef[] = [];
+
+  static create(componentType: Constructor<any>): ComponentRef[] {
     const { componentTemplate } = new ComponentTemplateMetadata(componentType);
     const componentRef = new ComponentRef(componentTemplate);
+
+    if (!ComponentFactory.componentRefs.some((ref) => componentRef === ref)) {
+      ComponentFactory.componentRefs.push(componentRef);
+    }
+
     const imports = new ImportComponentMetada(componentType);
 
     imports.importComponents.forEach((importComponent) => {
-      const childComponentRef = this.create(importComponent);
-      componentRef.add(childComponentRef);
+      this.create(importComponent);
     });
 
-    return componentRef;
+    return ComponentFactory.componentRefs;
   }
 }
 
@@ -60,7 +66,6 @@ export class ComponentRef {
       // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
       // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
       class CustomElement extends HTMLElement {
-        private childRef: ComponentRef[];
         private services: Container = new Container({
           autoBindInjectable: true,
         });
@@ -80,13 +85,6 @@ export class ComponentRef {
           this.elementRef = new ElementRef(this);
 
           // console.log(this.elementRef.nativeElement.querySelectorAll("[\\#]"));
-
-          // Dissocier les childs du component avec un ViewChidlRef ou un ruc du genre
-          // Utiliser un reducer je pense. Voir comment structurer. Gérer daans une classe à part
-
-          self.children.forEach((childRef) => {
-            childRef.render(services);
-          });
 
           // Via le @ViewChild, je pourrais facilement rajouter des options pour implémenter un ngModel native.
           this.services.bind(ElementRef).toConstantValue(this.elementRef);

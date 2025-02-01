@@ -34,13 +34,13 @@ class DefaultRenderStrategy implements RenderStrategy {
       throw new Error("Pas d'element trouvé");
     }
 
-    const componentTemplateMetadata = new ComponentTemplateMetadata(app);
-
     const services = new Container({ autoBindInjectable: true });
     services.bind(Renderer).toSelf().inSingletonScope();
 
-    const componentRef = ComponentFactory.create(app);
-    componentRef.render(services);
+    const componentRefs = ComponentFactory.create(app);
+    componentRefs.forEach((ref) => ref.render(services));
+
+    const componentTemplateMetadata = new ComponentTemplateMetadata(app);
 
     const appElement = document.createElement(
       componentTemplateMetadata.componentTemplate.selector

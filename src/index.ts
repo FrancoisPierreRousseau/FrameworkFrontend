@@ -14,6 +14,8 @@ import { Plateform } from "./core/plateform";
               https://web.dev/articles/user-valid-and-user-invalid-pseudo-classes?hl=fr
 
 
+  Les imports au niveau des components me servirons juste à restreindre 
+
   FIRST: 
   Optimissation de la mémoire également ! 
   Je ne peux y avoir que via @ViewChild. 
