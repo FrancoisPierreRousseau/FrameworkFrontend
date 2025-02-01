@@ -1,7 +1,8 @@
 import { inject } from "inversify";
-import { Component, ElementRef, ViewChild } from "../core/components/component";
+import { Component, ElementRef } from "../core/components/component";
 import { ChildComponent } from "./childComponent/child.component";
 import { OtherComponent } from "./otherComponent/other.component";
+import { ViewChild } from "../core/authoring/queries";
 
 // Import pour importer des Component (non standalone)
 // Si standalone alors on injecte globalement dans la Plateforme.

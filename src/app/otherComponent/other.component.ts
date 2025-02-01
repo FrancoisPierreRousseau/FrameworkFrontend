@@ -1,11 +1,8 @@
 import { inject } from "inversify";
-import {
-  Component,
-  ElementRef,
-  ViewChild,
-} from "../../core/components/component";
+import { Component, ElementRef } from "../../core/components/component";
 import { Renderer } from "../../core/render/renderer";
 import { ChildComponent } from "../childComponent/child.component";
+import { ViewChild } from "../../core/authoring/queries";
 
 @Component({
   selector: "other-component",

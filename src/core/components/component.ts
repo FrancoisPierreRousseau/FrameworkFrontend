@@ -1,39 +1,10 @@
 import { Container } from "inversify";
 import { IServiceCollection } from "../services/service.collection";
-
-class ViewChildSubject {
-  private observers: Map<Constructor<any>, ViewChildBuilderFn[]> = new Map();
-
-  constructor() {}
-
-  subscribe(
-    componentType: Constructor<any>,
-    ...builderFn: ViewChildBuilderFn[]
-  ) {
-    const observers = this.observers.get(componentType) || [];
-    observers.push(...builderFn);
-    this.observers.set(componentType, observers);
-  }
-
-  notify(
-    componentType: Constructor<any>,
-    childs: Map<ElementRef<HTMLElement>, any>,
-    elementRef: ElementRef<HTMLElement>
-  ) {
-    const observers = this.observers.get(componentType) || [];
-    observers.forEach((observer) => observer(childs, elementRef));
-  }
-}
-
-const viewChildSubject = new ViewChildSubject();
-
-let builders: ViewChildBuilderFn[] = [];
+import { viewChildFn, viewChildSubject } from "../authoring/queries";
 
 export class ComponentFactory {
   static create(componentType: Constructor<any>): ComponentRef {
-    const componentTemplate = new ComponentTemplateMetadata(componentType)
-      .componentTemplate;
-
+    const { componentTemplate } = new ComponentTemplateMetadata(componentType);
     const componentRef = new ComponentRef(componentTemplate);
     const imports = new ImportComponentMetada(componentType);
 
@@ -64,16 +35,7 @@ export class ElementRef<TElement extends HTMLElement> {
   }
 }
 
-// Retournera un ViewChildBuilder.
-// Il agrégera ordenera, structurera les childs (ref, classe ectect..)
-// Il prendre le elementRef dans le constructeur au cas ou pour la selection par classe, id ect...
-// En gros via un querySelectorAll. Si un element, un element sinon un tableau
-type ViewChildBuilderFn = (
-  childs: Map<ElementRef<HTMLElement>, any>,
-  elementRef: ElementRef<HTMLElement>
-) => void;
-
-const childs: Map<ElementRef<HTMLElement>, any> = new Map();
+const components: Map<ElementRef<HTMLElement>, any> = new Map();
 
 export class ComponentRef {
   private children: ComponentRef[] = [];
@@ -89,10 +51,7 @@ export class ComponentRef {
   }
 
   // C'est au renderer de se charger de rendre
-  render(
-    services: IServiceCollection,
-    callBack?: (component: any, elementRef: ElementRef<HTMLElement>) => any
-  ) {
+  render(services: IServiceCollection) {
     const self = this;
 
     if (customElements.get(this.componentTemplate.selector) === undefined) {
@@ -114,8 +73,6 @@ export class ComponentRef {
 
           this.componentType = self.componentTemplate.componentType;
 
-          this.childRef = self.children;
-
           this.services.parent = services;
 
           this.services.bind(this.componentType).toSelf().inTransientScope();
@@ -127,19 +84,8 @@ export class ComponentRef {
           // Dissocier les childs du component avec un ViewChidlRef ou un ruc du genre
           // Utiliser un reducer je pense. Voir comment structurer. Gérer daans une classe à part
 
-          this.childRef.forEach((childRef) => {
-            childRef.render(services, (childComponent, chidRef) => {
-              //   if (
-              //     [...chidRef.nativeElement.attributes].some((attr) =>
-              //       attr.name.startsWith("#")
-              //     )
-              //   ) {
-              //   }
-
-              childs.set(chidRef, childComponent);
-
-              //[...element.attributes].some((attr) => attr.name.startsWith("#"))
-            });
+          self.children.forEach((childRef) => {
+            childRef.render(services);
           });
 
           // Via le @ViewChild, je pourrais facilement rajouter des options pour implémenter un ngModel native.
@@ -161,15 +107,13 @@ export class ComponentRef {
 
           this.component = this.services.get(this.componentType);
 
-          if (callBack) {
-            callBack(this.component, this.elementRef);
-          }
+          components.set(this.elementRef, this.component);
 
           // Doit être géré par le renderer
           document.addEventListener("DOMContentLoaded", () => {
             viewChildSubject.notify(
               this.componentType,
-              childs,
+              components,
               this.elementRef
             );
 
@@ -186,47 +130,6 @@ export class ComponentRef {
       customElements.define(this.componentTemplate.selector, CustomElement);
     }
   }
-}
-
-export function ViewChild(componentType: Constructor<any>) {
-  return function defineViewChild(
-    object: { [key: string]: any },
-    propertyKey: string
-  ) {
-    object[propertyKey] = null;
-
-    const viewChildBuilderFn: ViewChildBuilderFn = (chidrens, elementRef) => {
-      const components: any[] = [];
-
-      [...chidrens.entries()].forEach(([childRef, element]) => {
-        if (
-          (childRef.nativeElement.getRootNode() as ShadowRoot).host ===
-          elementRef.nativeElement
-        ) {
-          components.push(element);
-        }
-      });
-
-      if (
-        typeof componentType === "function" &&
-        componentType.prototype !== undefined
-      ) {
-        const childsComponent = components.filter(
-          (component) => component.constructor === componentType
-        );
-
-        if (childsComponent.length === 1) {
-          object[propertyKey] = childsComponent[0];
-        }
-
-        if (childsComponent.length > 1) {
-          object[propertyKey] = childsComponent;
-        }
-      }
-    };
-
-    builders.push(viewChildBuilderFn);
-  };
 }
 
 class ComponentTemplate {
@@ -318,9 +221,7 @@ export function Component(option: {
   imports?: Constructor<any>[];
 }) {
   return function defineComponent<T extends Constructor<any>>(constructor: T) {
-    viewChildSubject.subscribe(constructor, ...builders);
-
-    builders = [];
+    viewChildFn(constructor);
 
     const componentTemplateMetadata = new ComponentTemplateMetadata(
       constructor
