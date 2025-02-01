@@ -1,11 +1,11 @@
 import { Container } from "inversify";
 import {
   ComponentFactory,
-  ComponentRef,
   ComponentTemplateMetadata,
   ElementRef,
 } from "./components/component";
 import { Renderer } from "./render/renderer";
+import { registerComponent } from "./render/register.component";
 
 export type Constructor<T> = {
   new (...args: any[]): T;
@@ -41,10 +41,11 @@ class DefaultRenderStrategy implements RenderStrategy {
 
     const components: Map<ElementRef<HTMLElement>, any> = new Map();
     const componentTemplates = ComponentFactory.create(app);
-    const render = new ComponentRef(); // Ici la placer dans renderer
-    componentTemplates.forEach((template) =>
-      render.render(services, template, components)
-    );
+
+    componentTemplates.forEach((template) => {
+      registerComponent(services, template, components)
+      services.get(Renderer).renderer(template)
+    });
 
     const componentTemplateMetadata = new ComponentTemplateMetadata(app);
 

@@ -12,7 +12,11 @@ import { Plateform } from "./core/plateform";
 
   Formulaire: https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/attachInternals#browser_compatibility
               https://web.dev/articles/user-valid-and-user-invalid-pseudo-classes?hl=fr
-
+              https://w3c.github.io/webcomponents-cg/2022.html#form-associated-custom-elements
+              
+  Custom element: https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/upgrade
+                  https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/whenDefined#examples
+                  
 
   Les imports au niveau des components me servirons juste à restreindre 
 
