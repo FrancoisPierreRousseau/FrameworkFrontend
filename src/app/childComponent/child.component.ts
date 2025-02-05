@@ -17,6 +17,6 @@ export class ChildComponent {
   ) {}
 
   afterViewInit() {
-    console.log(this.childComponent);
+    // console.log(this.childComponent);
   }
 }

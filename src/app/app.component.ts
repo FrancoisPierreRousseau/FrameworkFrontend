@@ -13,17 +13,24 @@ import { ViewChild } from "../core/authoring/queries";
   imports: [ChildComponent, OtherComponent], // Générer une erreur si le ChildComponent est standalone
 })
 export class AppComponent {
-  @ViewChild(ChildComponent) childComponent!: ChildComponent; // Ne marche pas encore actuellement
+  @ViewChild("secondchild") childComponent!: ChildComponent; // Ne marche pas encore actuellement
   @ViewChild(OtherComponent) otherComponent!: OtherComponent;
+
+  private count: number = 0;
 
   constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}
 
   afterViewInit() {
     console.log(this.childComponent);
-    console.log(this.otherComponent);
+    // console.log(this.otherComponent);
   }
 
   // @Input() prop1, prop2...
+
+  increment() {
+    this.count++;
+    console.log(this.count);
+  }
 
   static defineProps() {
     return {

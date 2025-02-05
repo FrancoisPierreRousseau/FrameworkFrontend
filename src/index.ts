@@ -3,6 +3,10 @@ import { AppComponent } from "./app/app.component";
 import { Plateform } from "./core/plateform";
 
 /*
+  ViewhChild: Enregistrer l'intégralité des éléments possédant un ref en plus des component. Passer l'élément principal 
+              pour utiliser querySelectorAll ....  
+              J'aurais un compiler pour asocier les events avec les templates
+
   First: https://github.com/angular/angular/blob/main/packages/core/src/platform/platform_ref.ts#L41 -> bootstrapModule
          Compilation (comportement différents), chargement des ressources ect... 
          NgModuleFactory qui retourne un NgModuleRef
@@ -18,6 +22,8 @@ import { Plateform } from "./core/plateform";
                   https://developer.mozilla.org/en-US/docs/Web/API/CustomElementRegistry/whenDefined#examples
                   
 
+  Créer une erreur si le selecteur du component ne correspond au pattern (to-minuscule-whith-tiret)
+
   Les imports au niveau des components me servirons juste à restreindre 
 
   FIRST: 
@@ -29,9 +35,12 @@ import { Plateform } from "./core/plateform";
   du template (#ref). Ils sont déja dans le dom, pas besoin d'être mémoriser. 
   On verra pour le standalone plus tard. Si j'ai besoin d'identifier des composnts 
   distincte mais possédant la même classe, j'utiliserais la reférence pour les identifier. 
-
-
+  Cela ne concerne uniquemeent que le premier niveau
+  Pour la recherche par reference plus de robustesse sur le nom (string tout le temps en minuscule)
   Faire attention à l'odre de rendu des components 
+
+
+  le role de l'ElementRef est de conserver une reférence au dom. Que l'élément soit détruire ou non. 
 */
 
 /*

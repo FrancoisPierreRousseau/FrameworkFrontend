@@ -2,7 +2,6 @@ import { Container } from "inversify";
 import {
   ComponentFactory,
   ComponentTemplateMetadata,
-  ElementRef,
 } from "./components/component";
 import { Renderer } from "./render/renderer";
 import { registerComponent } from "./render/register.component";

@@ -25,14 +25,6 @@ export type Constructor<T> = {
 // Doit être géré par un renderer
 export class ElementRef<TElement extends HTMLElement> {
   constructor(public nativeElement: TElement) {}
-
-  addEventListener<K extends keyof HTMLElementEventMap>(
-    type: K,
-    listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
-    options?: boolean | AddEventListenerOptions
-  ) {
-    this.nativeElement.addEventListener(type, listener, options);
-  }
 }
 
 export class ComponentTemplate {
@@ -40,25 +32,20 @@ export class ComponentTemplate {
 
   constructor(
     public selector: string,
-    private template: string,
+    private templateKey: string,
     public componentType: Constructor<any>
   ) {
-    this.html = HTML_TEMPLATES[template];
+    this.html = HTML_TEMPLATES[templateKey];
   }
 
-  get element(): HTMLTemplateElement {
-    const parser = new DOMParser();
-    const element = parser
-      .parseFromString(this.html, "text/html")
-      .querySelector("template");
-
-    if (!element) {
+  get template(): string {
+    if (!this.html) {
       throw new Error(
-        `Aucun html spécifié pour le template ${this.template}. Veuilliez verifier l'ortographe ou l'existance de votre template`
+        `Aucun html spécifié pour le template ${this.templateKey}. Veuilliez verifier l'ortographe ou l'existance de votre template`
       );
     }
 
-    return element;
+    return this.html;
   }
 }
 
