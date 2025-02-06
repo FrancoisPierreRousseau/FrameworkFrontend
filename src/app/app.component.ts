@@ -13,7 +13,7 @@ import { ViewChild } from "../core/authoring/queries";
   imports: [ChildComponent, OtherComponent], // Générer une erreur si le ChildComponent est standalone
 })
 export class AppComponent {
-  @ViewChild("secondchild") childComponent!: ChildComponent; // Ne marche pas encore actuellement
+  @ViewChild("secondchild") childComponent!: ChildComponent;
   @ViewChild(OtherComponent) otherComponent!: OtherComponent;
 
   private count: number = 0;
@@ -27,7 +27,8 @@ export class AppComponent {
 
   // @Input() prop1, prop2...
 
-  increment() {
+  increment(event: Event) {
+    console.log(event.target);
     this.count++;
     console.log(this.count);
   }

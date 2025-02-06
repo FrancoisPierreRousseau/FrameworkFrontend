@@ -7,8 +7,11 @@
 
     <button (click)="increment">Click me</button>
 
+    <p>{{count}} il doit être reactive</p>
+
     <div>
         <div>
+            <button (click)="increment">Click me 2</button>
             <div>
                 <child-component #secondChild></child-component>
             </div>
