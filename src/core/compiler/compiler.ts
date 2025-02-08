@@ -1,19 +1,42 @@
 import { ComponentTemplate } from "../components/component";
+import { DOMBinder } from "../render/reactivity.ref";
 import { EventKey, Renderer } from "../render/renderer";
 
 interface ElementVisitor {
-  visitElement(element: Element): void;
+  visitElement(element: HTMLElement): void;
 }
 
-class EventHandlerVisitor implements ElementVisitor {
+class VisitorElement implements ElementVisitor {
+  private readonly visitors: ElementVisitor[] = [];
+
+  add(visitor: ElementVisitor) {
+    this.visitors.push(visitor);
+  }
+
+  visitElement(element: HTMLElement): void {
+    this.visitors.forEach((visitor) => visitor.visitElement(element));
+  }
+}
+
+class ReactivityVisitor implements ElementVisitor {
+  constructor(private component: any, private domBinder: DOMBinder) {}
+
+  visitElement(element: HTMLElement): void {
+    this.domBinder.bind(element, this.component);
+  }
+}
+
+class BindingEventVisitor implements ElementVisitor {
+  private readonly eventRegex = /^\(.*\)$/;
+
   constructor(
     private readonly component: any,
     private readonly renderer: Renderer
   ) {}
 
-  visitElement(element: Element): void {
+  visitElement(element: HTMLElement): void {
     const attrEvents = [...element.attributes].filter((attr) =>
-      /^\(.*\)$/.test(attr.localName)
+      this.eventRegex.test(attr.localName)
     );
 
     attrEvents.forEach((attr) => {
@@ -52,10 +75,12 @@ export class Compiler {
       .querySelector("template");
 
     if (!element) {
-      throw new Error("un probléme");
+      throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
     }
 
-    const visitor = new EventHandlerVisitor(this.component, this.renderer);
+    const visitor = new VisitorElement();
+    visitor.add(new BindingEventVisitor(this.component, this.renderer));
+    visitor.add(new ReactivityVisitor(this.component, new DOMBinder()));
 
     this.traverseAndVisit(element.content, visitor);
 
@@ -63,7 +88,7 @@ export class Compiler {
   }
 
   private traverseAndVisit(node: Node, visitor: ElementVisitor): void {
-    if (node instanceof Element && node.matches(":defined")) {
+    if (node instanceof HTMLElement && node.matches(":defined")) {
       visitor.visitElement(node);
     }
 

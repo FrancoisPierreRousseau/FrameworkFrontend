@@ -1,20 +1,34 @@
 <template>
     <h1 #h1>Hello World !</h1>
     <child-component #firstChild></child-component>
+
+    <p>3: {{countSignal}} il doit je pense que oui ejejej être reactive</p>
+
+
     <child-component #secondChild></child-component>
     <other-component #thirdChild></other-component>
+
+    <p>3: {{countSignal}} il doit je pense que oui ejejej êDDDSQQCddddtre reactive</p>
+
+    
+
     <child-component #secondChild></child-component>
 
     <button (click)="increment">Click me</button>
 
-    <p>{{count}} il doit être reactive</p>
+    <p>1: {{countSignal}} il doit être reactive</p>
 
     <div>
+        <button (click)="increment">Click me 2</button>
+        
         <div>
-            <button (click)="increment">Click me 2</button>
+            
             <div>
                 <child-component #secondChild></child-component>
             </div>
+
+            <p>3: {{countSignal}} il doit je pense que oui ejejej être reactive</p>
+
         </div>
     </div>
 </template>

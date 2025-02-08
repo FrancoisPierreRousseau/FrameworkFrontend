@@ -3,6 +3,7 @@ import { Component, ElementRef } from "../core/components/component";
 import { ChildComponent } from "./childComponent/child.component";
 import { OtherComponent } from "./otherComponent/other.component";
 import { ViewChild } from "../core/authoring/queries";
+import { signal } from "../core/render/reactivity.ref";
 
 // Import pour importer des Component (non standalone)
 // Si standalone alors on injecte globalement dans la Plateforme.
@@ -18,6 +19,8 @@ export class AppComponent {
 
   private count: number = 0;
 
+  countSignal = signal(0);
+
   constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}
 
   afterViewInit() {
@@ -28,9 +31,8 @@ export class AppComponent {
   // @Input() prop1, prop2...
 
   increment(event: Event) {
-    console.log(event.target);
     this.count++;
-    console.log(this.count);
+    this.countSignal.update((value) => value + 1);
   }
 
   static defineProps() {
