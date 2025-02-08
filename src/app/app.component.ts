@@ -5,6 +5,11 @@ import { OtherComponent } from "./otherComponent/other.component";
 import { ViewChild } from "../core/authoring/queries";
 import { signal } from "../core/render/reactivity.ref";
 
+interface User {
+  firstName: string;
+  lastName: string;
+}
+
 // Import pour importer des Component (non standalone)
 // Si standalone alors on injecte globalement dans la Plateforme.
 @Component({
@@ -17,9 +22,11 @@ export class AppComponent {
   @ViewChild("secondchild") childComponent!: ChildComponent;
   @ViewChild(OtherComponent) otherComponent!: OtherComponent;
 
-  private count: number = 0;
-
   countSignal = signal(0);
+  userSignal = signal<User>({
+    firstName: "firstName",
+    lastName: "lastName",
+  });
 
   constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}
 
@@ -31,8 +38,8 @@ export class AppComponent {
   // @Input() prop1, prop2...
 
   increment(event: Event) {
-    this.count++;
     this.countSignal.update((value) => value + 1);
+    this.userSignal.set({ firstName: "otherName", lastName: "un autre nom" });
   }
 
   static defineProps() {

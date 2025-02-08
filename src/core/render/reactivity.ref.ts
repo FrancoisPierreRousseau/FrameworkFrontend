@@ -1,3 +1,6 @@
+import cloneDeep from "lodash.clonedeep";
+import isEqual from "lodash.isequal";
+
 class Signal<T> {
   private value: T;
 
@@ -12,8 +15,8 @@ class Signal<T> {
   }
 
   set(newValue: T) {
-    if (this.value !== newValue) {
-      this.value = newValue;
+    if (!isEqual(newValue, this.value)) {
+      this.value = cloneDeep(newValue);
       this.notifyObservers();
     }
   }
@@ -38,15 +41,29 @@ interface DOMBindingStrategy {
 
 class TextNodeBinding implements DOMBindingStrategy {
   bind(node: Node, expression: string, component: any): void {
-    if (expression in component && component[expression] instanceof Signal) {
-      const signal = component[expression];
-      const text = node.textContent || "";
-      const updateNode = () => {
-        node.textContent = text.replace(`{{${expression}}}`, signal.get());
-      };
-      signal.subscribe(updateNode);
-      updateNode();
+    const signalName = expression.slice(2, -2).trim();
+    const parts = signalName.split(".");
+    let current = component;
+    for (const part of parts) {
+      if (current && current[part] instanceof Signal) {
+        const signal = current[part];
+        const index = (node.textContent || "").split(" ").indexOf(expression);
+        const updateNode = () => {
+          const textParts = (node.textContent || "").split(" ");
+          const value = this.getNestedValue(signal.get(), parts.slice(1));
+          textParts[index] = String(value);
+          node.textContent = textParts.join(" ");
+        };
+        signal.subscribe(updateNode);
+        updateNode();
+        return;
+      }
+      current = current[part];
     }
+  }
+
+  private getNestedValue(obj: any, path: string[]): any {
+    return path.reduce((current, part) => current && current[part], obj);
   }
 }
 
@@ -62,9 +79,8 @@ export class DOMBinder {
     );
 
     textNodes.forEach((node) => {
-      const signalNames = node.textContent!.match(signalRegex);
-      signalNames?.forEach((signalName) => {
-        const expression = signalName.slice(2, -2).trim();
+      const expressions = node.textContent!.match(signalRegex);
+      expressions?.forEach((expression) => {
         this.strategy.bind(node, expression, component);
       });
     });
