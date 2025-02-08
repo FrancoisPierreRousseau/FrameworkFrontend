@@ -47,12 +47,15 @@ class TextNodeBinding implements DOMBindingStrategy {
     for (const part of parts) {
       if (current && current[part] instanceof Signal) {
         const signal = current[part];
-        const index = (node.textContent || "").split(" ").indexOf(expression);
+        let startIndex = (node.textContent || "").indexOf(expression);
+        let endIndex = startIndex + expression.length;
         const updateNode = () => {
-          const textParts = (node.textContent || "").split(" ");
           const value = this.getNestedValue(signal.get(), parts.slice(1));
-          textParts[index] = String(value);
-          node.textContent = textParts.join(" ");
+          const text = node.textContent ?? "";
+          const before = text.slice(0, startIndex);
+          const after = text.slice(endIndex);
+          node.textContent = before + String(value) + after;
+          endIndex = startIndex + String(value).length;
         };
         signal.subscribe(updateNode);
         updateNode();

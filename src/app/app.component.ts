@@ -42,6 +42,11 @@ export class AppComponent {
     this.userSignal.set({ firstName: "otherName", lastName: "un autre nom" });
   }
 
+  increment2(event: Event) {
+    this.countSignal.update((value) => value + 1);
+    this.userSignal.set({ firstName: "otherName", lastName: "otherName" });
+  }
+
   static defineProps() {
     return {
       selectorName: {
