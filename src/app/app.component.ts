@@ -28,6 +28,8 @@ export class AppComponent {
     lastName: "lastName",
   });
 
+  isDisabled = signal(false);
+
   constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}
 
   afterViewInit() {
@@ -36,6 +38,10 @@ export class AppComponent {
   }
 
   // @Input() prop1, prop2...
+
+  toggleDisableButton() {
+    this.isDisabled.set(!this.isDisabled.get());
+  }
 
   increment(event: Event) {
     this.countSignal.update((value) => value + 1);

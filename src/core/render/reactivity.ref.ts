@@ -48,6 +48,7 @@ class TextNodeBinding implements DOMBindingStrategy {
       if (current && current[part] instanceof Signal) {
         const signal = current[part];
         let startIndex = (node.textContent || "").indexOf(expression);
+        console.log(expression);
         let endIndex = startIndex + expression.length;
         const updateNode = () => {
           const value = this.getNestedValue(signal.get(), parts.slice(1));
@@ -79,12 +80,23 @@ class AttributeBinding implements DOMBindingStrategy {
       for (const part of parts) {
         if (current && current[part] instanceof Signal) {
           const signal = current[part];
-          const updateAttr = () => {
-            const value = this.getNestedValue(signal.get(), parts.slice(1));
-            node.setAttribute(attr.trim(), String(value));
-          };
-          signal.subscribe(updateAttr);
-          updateAttr();
+
+          if (attr in node) {
+            const updateProperty = () => {
+              const value = this.getNestedValue(signal.get(), parts.slice(1));
+              (node as any)[attr] = value;
+            };
+            signal.subscribe(updateProperty);
+            updateProperty();
+            return;
+          } else {
+            const update = () => {
+              const value = this.getNestedValue(signal.get(), parts.slice(1));
+              node.setAttribute(attr.trim(), String(value));
+            };
+            signal.subscribe(update);
+            update();
+          }
           return;
         }
         current = current[part];
