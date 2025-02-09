@@ -79,3 +79,10 @@ new Plateform(AppComponent).render("app");
   muté... non ?  
   Les propriété calculé sont renvoyé uniquement si une de leur reférence (source) change. 
 */
+
+/*
+  Attributes binding vs propery binding
+  Lorsque on bind, je regarderais si l'attribut correspond à un attributs du dom (src, disables ect...).
+  Je me baserais sur leur typage de base (src = string, disables = boolean).
+  Sinon à voir pour les attribut... 
+*/
