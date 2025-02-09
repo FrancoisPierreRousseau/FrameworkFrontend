@@ -70,10 +70,43 @@ class TextNodeBinding implements DOMBindingStrategy {
   }
 }
 
+class AttributeBinding implements DOMBindingStrategy {
+  bind(node: Node, expression: string, component: any): void {
+    if (node instanceof HTMLElement) {
+      const [attr, signalPath] = expression.split("=");
+      const parts = signalPath.trim().split(".");
+      let current = component;
+      for (const part of parts) {
+        if (current && current[part] instanceof Signal) {
+          const signal = current[part];
+          const updateAttr = () => {
+            const value = this.getNestedValue(signal.get(), parts.slice(1));
+            node.setAttribute(attr.trim(), String(value));
+          };
+          signal.subscribe(updateAttr);
+          updateAttr();
+          return;
+        }
+        current = current[part];
+      }
+    }
+  }
+
+  private getNestedValue(obj: any, path: string[]): any {
+    return path.reduce((current, part) => current && current[part], obj);
+  }
+}
+
 export class DOMBinder {
   private strategy: DOMBindingStrategy = new TextNodeBinding();
+  private attrStrategy: DOMBindingStrategy = new AttributeBinding();
 
   bind(element: HTMLElement, component: any): void {
+    this.bindTextNodes(element, component);
+    this.bindAttributes(element, component);
+  }
+
+  bindTextNodes(element: HTMLElement, component: any): void {
     const signalRegex = /{{(.*?)}}/g;
     const textNodes = [...element.childNodes].filter(
       (node) =>
@@ -86,6 +119,18 @@ export class DOMBinder {
       expressions?.forEach((expression) => {
         this.strategy.bind(node, expression, component);
       });
+    });
+  }
+
+  private bindAttributes(element: HTMLElement, component: any): void {
+    const signalRegex = /\[(.*?)\]/;
+    [...element.attributes].forEach((attr) => {
+      const match = attr.name.match(signalRegex);
+      if (match) {
+        const expression = `${attr.name.slice(1, -1)}=${attr.value}`;
+        this.attrStrategy.bind(element, expression, component);
+        element.removeAttribute(attr.name);
+      }
     });
   }
 }
