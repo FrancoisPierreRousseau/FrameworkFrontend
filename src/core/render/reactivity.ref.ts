@@ -123,13 +123,56 @@ class AttributeBinding implements DOMBindingStrategy {
   }
 }
 
+class ListBinding implements DOMBindingStrategy {
+  bind(node: Node, expression: string, component: any): void {
+    if (node instanceof HTMLElement) {
+      const parts = expression.split(".");
+      let current = component;
+      for (const part of parts) {
+        if (current && current[part] instanceof Signal) {
+          const signal = current[part];
+          const template = node.innerHTML;
+          const updateList = () => {
+            const array = signal.get();
+            if (Array.isArray(array)) {
+              node.innerHTML = array
+                .map((item, index) => this.interpolate(template, item, index))
+                .join("");
+            }
+          };
+          signal.subscribe(updateList);
+          updateList();
+          return;
+        }
+        current = current[part];
+      }
+    }
+  }
+
+  private interpolate(template: string, item: any, index: number): string {
+    return template.replace(/{{(.*?)}}/g, (match, p1) => {
+      const value =
+        p1.trim() === "$index"
+          ? index
+          : this.getNestedValue(item, p1.trim().split("."));
+      return String(value);
+    });
+  }
+
+  private getNestedValue(obj: any, path: string[]): any {
+    return path.reduce((current, part) => current && current[part], obj);
+  }
+}
+
 export class DOMBinder {
   private strategy: DOMBindingStrategy = new TextNodeBinding();
   private attrStrategy: DOMBindingStrategy = new AttributeBinding();
+  private listStrategy: DOMBindingStrategy = new ListBinding();
 
   bind(element: HTMLElement, component: any): void {
     this.bindTextNodes(element, component);
     this.bindAttributes(element, component);
+    this.bindLists(element, component);
   }
 
   bindTextNodes(element: HTMLElement, component: any): void {
@@ -156,6 +199,20 @@ export class DOMBinder {
         element.removeAttribute(attr.name);
       }
     });
+  }
+
+  private bindLists(element: HTMLElement, component: any): void {
+    const hasFor =
+      element.attributes &&
+      Array.from(element.attributes).some((attr) => attr.name === "*for");
+
+    if (hasFor && element instanceof HTMLElement) {
+      const forAttr = element.getAttribute("*for");
+      if (forAttr) {
+        this.listStrategy.bind(element, forAttr, component);
+        element.removeAttribute("*for");
+      }
+    }
   }
 }
 

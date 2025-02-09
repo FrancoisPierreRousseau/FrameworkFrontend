@@ -28,6 +28,12 @@ export class AppComponent {
     lastName: "lastName",
   });
 
+  users = signal([
+    { name: "Alice", age: 30 },
+    { name: "Bob", age: 25 },
+    { name: "Charlie", age: 35 },
+  ]);
+
   isDisabled = signal(false);
 
   constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}
@@ -39,6 +45,10 @@ export class AppComponent {
 
   // @Input() prop1, prop2...
 
+  addUser() {
+    this.users.update((users) => [...users, { name: "New User", age: 20 }]);
+  }
+
   toggleDisableButton() {
     this.isDisabled.set(!this.isDisabled.get());
   }
@@ -46,6 +56,7 @@ export class AppComponent {
   increment(event: Event) {
     this.countSignal.update((value) => value + 1);
     this.userSignal.set({ firstName: "firstName", lastName: "lastName" });
+    this.addUser();
   }
 
   increment2(event: Event) {
