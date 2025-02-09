@@ -202,11 +202,7 @@ export class DOMBinder {
   }
 
   private bindLists(element: HTMLElement, component: any): void {
-    const hasFor =
-      element.attributes &&
-      Array.from(element.attributes).some((attr) => attr.name === "*for");
-
-    if (hasFor && element instanceof HTMLElement) {
+    if (element.hasAttribute("*for") && element instanceof HTMLElement) {
       const forAttr = element.getAttribute("*for");
       if (forAttr) {
         this.listStrategy.bind(element, forAttr, component);

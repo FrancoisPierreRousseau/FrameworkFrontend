@@ -60,6 +60,9 @@ import { Plateform } from "./core/plateform";
 // Normalement c'est un module de renseigner, pour l'instant je me concentre
 // sur un component
 
+// Pour le liste dans les signaux. Si l'on veut que les modification
+// d'un element individuel soi refléflé sur l'interface alors on devra spécifier une liste de signaux.
+
 new Plateform(AppComponent).render("app");
 
 // Un mecansime intéréssant et de pouvoir souscrir à un événement du renderer via un observer/subscrible

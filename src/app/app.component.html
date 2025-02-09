@@ -12,6 +12,7 @@
 
     <ul *for="users">
         <li>{{$index}}. {{name}} is {{age}} years old</li>
+        <child-component #secondChild></child-component>
     </ul>
 
     <child-component #secondChild></child-component>
