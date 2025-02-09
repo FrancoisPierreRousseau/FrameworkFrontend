@@ -36,34 +36,48 @@ class Signal<T> {
 }
 
 interface DOMBindingStrategy {
-  bind(node: Node, expression: string, component: any): void;
+  bind(node: Node, expression: string | string[], component: any): void;
 }
 
 class TextNodeBinding implements DOMBindingStrategy {
-  bind(node: Node, expression: string, component: any): void {
-    const signalName = expression.slice(2, -2).trim();
-    const parts = signalName.split(".");
-    let current = component;
-    for (const part of parts) {
-      if (current && current[part] instanceof Signal) {
-        const signal = current[part];
-        let startIndex = (node.textContent || "").indexOf(expression);
-        console.log(expression);
-        let endIndex = startIndex + expression.length;
-        const updateNode = () => {
-          const value = this.getNestedValue(signal.get(), parts.slice(1));
-          const text = node.textContent ?? "";
-          const before = text.slice(0, startIndex);
-          const after = text.slice(endIndex);
-          node.textContent = before + String(value) + after;
-          endIndex = startIndex + String(value).length;
-        };
-        signal.subscribe(updateNode);
-        updateNode();
-        return;
+  bind(node: Node, expressions: string[], component: any): void {
+    const originalContent = node.textContent ?? "";
+
+    const signals: Map<string, Signal<any>> = new Map();
+
+    expressions.forEach((expression) => {
+      const signalName = expression.slice(2, -2).trim();
+      const parts = signalName.split(".");
+      let current = component;
+
+      for (const part of parts) {
+        if (current && current[part] instanceof Signal) {
+          const signal = current[part];
+          signals.set(expression, signal);
+          break;
+        }
+        current = current[part];
       }
-      current = current[part];
-    }
+    });
+
+    const updateNode = () => {
+      let content = originalContent ?? "";
+
+      signals.forEach((signal, expression) => {
+        const signalName = expression.slice(2, -2).trim();
+        const parts = signalName.split(".");
+        const value = this.getNestedValue(signal.get(), parts.slice(1));
+        content = content.replaceAll(expression, String(value));
+      });
+
+      node.textContent = content;
+    };
+
+    signals.forEach((signal) => {
+      signal.subscribe(updateNode);
+    });
+
+    updateNode();
   }
 
   private getNestedValue(obj: any, path: string[]): any {
@@ -128,9 +142,7 @@ export class DOMBinder {
 
     textNodes.forEach((node) => {
       const expressions = node.textContent!.match(signalRegex);
-      expressions?.forEach((expression) => {
-        this.strategy.bind(node, expression, component);
-      });
+      this.strategy.bind(node, expressions ?? [], component);
     });
   }
 
