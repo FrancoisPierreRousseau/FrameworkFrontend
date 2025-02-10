@@ -3,11 +3,10 @@ import isEqual from "lodash.isequal";
 
 class Signal<T> {
   private value: T;
-
   private observers: Set<(value: T) => void> = new Set();
 
   constructor(initialValue: T) {
-    this.value = initialValue;
+    this.value = cloneDeep(initialValue);
   }
 
   get(): T {
@@ -22,7 +21,9 @@ class Signal<T> {
   }
 
   update(fn: (currentValue: T) => T): void {
-    this.set(fn(this.value));
+    const newValue = fn(cloneDeep(this.value));
+    this.value = cloneDeep(newValue);
+    this.notifyObservers();
   }
 
   subscribe(observer: (value: T) => void): () => void {

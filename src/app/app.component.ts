@@ -48,12 +48,8 @@ export class AppComponent {
   // @Input() prop1, prop2...
 
   addUser() {
-    // c'est ok :
-    this.users.update((users) => {
-      users[0] = { age: 30, name: "Jacob" };
-      return [...users, { name: "New User", age: 20 }];
-    });
-    // Ne fonctionnera pas, il faut le faire en un seul coup dans le update. Il fonctionnera mais au bout de la deuxiéme fois...
+    this.users.update((users) => [...users, { name: "New User", age: 20 }]);
+
     this.users.update((users) => {
       users[0] = { age: 30, name: "Jacob" };
       return users;

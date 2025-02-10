@@ -35,6 +35,8 @@ export const registerComponent = (
     constructor() {
       super();
 
+      // Ici initialisation des props
+
       this.componentType = componentTemplate.componentType;
 
       this.services.parent = services;
