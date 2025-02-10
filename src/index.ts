@@ -11,6 +11,8 @@ import { Plateform } from "./core/plateform";
   Les slot sont déja intégré indirectement : https://developer.mozilla.org/en-US/docs/Web/HTML/Element/slot
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+  
   Prochaine "evo" intégré les props. 
 
   ViewhChild: Enregistrer l'intégralité des éléments possédant un ref en plus des component. Passer l'élément principal 
