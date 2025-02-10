@@ -60,7 +60,7 @@ export class AppComponent {
     this.isDisabled.set(!this.isDisabled.get());
   }
 
-  mouseenter(event: Event) {
+  mouseenter(event: MouseEvent) {
     console.log("mouse is enter");
   }
 

@@ -11,6 +11,8 @@ import { Plateform } from "./core/plateform";
   Les slot sont déja intégré indirectement : https://developer.mozilla.org/en-US/docs/Web/HTML/Element/slot
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  // Regarder si je peux pas by passe les limitations en utilisan les slot pour les viewchild de même componant imbriqués... 
+  // Si celaa fonctionne on peut déja contourner certain probléme lié au *for
 
   
   Prochaine "evo" intégré les props. 
