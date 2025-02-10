@@ -60,6 +60,10 @@ export class AppComponent {
     this.isDisabled.set(!this.isDisabled.get());
   }
 
+  mouseenter(event: Event) {
+    console.log("mouse is enter");
+  }
+
   increment(event: Event) {
     this.countSignal.update((value) => value + 1);
     this.userSignal.set({ firstName: "firstName", lastName: "lastName" });
