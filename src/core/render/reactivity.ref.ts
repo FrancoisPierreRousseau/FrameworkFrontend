@@ -39,7 +39,13 @@ interface DOMBindingStrategy {
   bind(node: Node, expression: string | string[], component: any): void;
 }
 
-class TextNodeBinding implements DOMBindingStrategy {
+abstract class BaseNodeBinding {
+  protected getNestedValue(obj: any, path: string[]): any {
+    return path.reduce((current, part) => current && current[part], obj);
+  }
+}
+
+class TextNodeBinding extends BaseNodeBinding implements DOMBindingStrategy {
   bind(node: Node, expressions: string[], component: any): void {
     const originalContent = node.textContent ?? "";
 
@@ -79,13 +85,9 @@ class TextNodeBinding implements DOMBindingStrategy {
 
     updateNode();
   }
-
-  private getNestedValue(obj: any, path: string[]): any {
-    return path.reduce((current, part) => current && current[part], obj);
-  }
 }
 
-class AttributeBinding implements DOMBindingStrategy {
+class AttributeBinding extends BaseNodeBinding implements DOMBindingStrategy {
   bind(node: Node, expression: string, component: any): void {
     if (node instanceof HTMLElement) {
       const [attr, signalPath] = expression.split("=");
@@ -117,13 +119,9 @@ class AttributeBinding implements DOMBindingStrategy {
       }
     }
   }
-
-  private getNestedValue(obj: any, path: string[]): any {
-    return path.reduce((current, part) => current && current[part], obj);
-  }
 }
 
-class ListBinding implements DOMBindingStrategy {
+class ListBinding extends BaseNodeBinding implements DOMBindingStrategy {
   bind(node: Node, expression: string, component: any): void {
     if (node instanceof HTMLElement) {
       const parts = expression.split(".");
@@ -157,10 +155,6 @@ class ListBinding implements DOMBindingStrategy {
           : this.getNestedValue(item, p1.trim().split("."));
       return String(value);
     });
-  }
-
-  private getNestedValue(obj: any, path: string[]): any {
-    return path.reduce((current, part) => current && current[part], obj);
   }
 }
 

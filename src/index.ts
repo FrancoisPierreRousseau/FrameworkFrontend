@@ -3,6 +3,12 @@ import { AppComponent } from "./app/app.component";
 import { Plateform } from "./core/plateform";
 
 /*
+  // LIMITATIONS  //
+  Pour pouvoir gérer les signaux imbriqué, les passer en temps que prop (implémenter plus tard)
+  dans des composants enfant (parent -> enfant). 
+  On peut déja avoir accés au prop dans les customs element. (on a accés au component parent) 
+  Il faudra générer une erreur est autoriser uniquement les webcomonent à faire partir des listes. 
+
   ViewhChild: Enregistrer l'intégralité des éléments possédant un ref en plus des component. Passer l'élément principal 
               pour utiliser querySelectorAll ....  
               J'aurais un compiler pour asocier les events avec les templates

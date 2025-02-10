@@ -9,7 +9,7 @@ import { ViewChild } from "../../core/authoring/queries";
   template: "child.component.html",
 })
 export class ChildComponent {
-  @ViewChild(ChildComponent) childComponent!: ChildComponent; // Ne marche pas encore actuellement
+  @ViewChild(ChildComponent) childComponent!: ChildComponent; // Il ne peux s'utiliser lui même. Générer une erreur si on tente de le faire
 
   constructor(
     @inject(ElementRef) public element: ElementRef<HTMLElement>,
@@ -17,6 +17,6 @@ export class ChildComponent {
   ) {}
 
   afterViewInit() {
-    // console.log(this.childComponent);
+    console.log(this.element);
   }
 }
