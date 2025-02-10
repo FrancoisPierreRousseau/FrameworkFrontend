@@ -6,8 +6,11 @@ import { Plateform } from "./core/plateform";
   // LIMITATIONS  //
   Pour pouvoir gérer les signaux imbriqué, les passer en temps que prop (implémenter plus tard)
   dans des composants enfant (parent -> enfant). 
-  On peut déja avoir accés au prop dans les customs element. (on a accés au component parent) 
-  Il faudra générer une erreur est autoriser uniquement les webcomonent à faire partir des listes. 
+  Pour pouvoir modifier un element d'une liste de signaux, on peut le faire directement dans le update du signal. 
+  Les slot sont déja intégré indirectement : https://developer.mozilla.org/en-US/docs/Web/HTML/Element/slot
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  Prochaine "evo" intégré les props. 
 
   ViewhChild: Enregistrer l'intégralité des éléments possédant un ref en plus des component. Passer l'élément principal 
               pour utiliser querySelectorAll ....  

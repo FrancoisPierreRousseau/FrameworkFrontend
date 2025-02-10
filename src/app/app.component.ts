@@ -28,6 +28,8 @@ export class AppComponent {
     lastName: "lastName",
   });
 
+  // Fonctionne mais valeur ne peuvent pas être des signaux. Si on veut que cela reste dynamique
+  // alors on doit obligatoirement utiliser des webcomponent lors des itérations
   users = signal([
     { name: "Alice", age: 30 },
     { name: "Bob", age: 25 },
@@ -46,7 +48,16 @@ export class AppComponent {
   // @Input() prop1, prop2...
 
   addUser() {
-    this.users.update((users) => [...users, { name: "New User", age: 20 }]);
+    // c'est ok :
+    this.users.update((users) => {
+      users[0] = { age: 30, name: "Jacob" };
+      return [...users, { name: "New User", age: 20 }];
+    });
+    // Ne fonctionnera pas, il faut le faire en un seul coup dans le update. Il fonctionnera mais au bout de la deuxiéme fois...
+    this.users.update((users) => {
+      users[0] = { age: 30, name: "Jacob" };
+      return users;
+    });
   }
 
   toggleDisableButton() {
@@ -62,13 +73,5 @@ export class AppComponent {
   increment2(event: Event) {
     this.countSignal.update((value) => value + 1);
     this.userSignal.set({ firstName: "lastName", lastName: "firstName" });
-  }
-
-  static defineProps() {
-    return {
-      selectorName: {
-        // Props et serra récupérer dans le composant endant
-      },
-    };
   }
 }
