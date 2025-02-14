@@ -23,13 +23,16 @@ class SimpleView extends AbstractView {
   }
 }
 
+// Correspondra à une directive structurel
 class ListView extends AbstractView {
   private template: string;
   private forAttr: string;
 
-  constructor(element: HTMLElement) {
+  // Seront passé surement par injection de dépendance (au moi le domBinder à minima)
+  constructor(element: HTMLElement, private domBinder: DOMBinder) {
     super(element);
     this.template = element.innerHTML;
+    (this.element as HTMLElement).innerHTML = "";
     this.forAttr = element.getAttribute("*for") || "";
     element.removeAttribute("*for");
   }
@@ -40,12 +43,14 @@ class ListView extends AbstractView {
 
     if (signal instanceof Signal) {
       const update = () => {
-        (this.element as HTMLElement).innerHTML = "";
         signal.get().forEach((item: any) => {
           const templateElement = document.createElement("template");
           templateElement.innerHTML = this.template;
-          const builder = new ViewBuilder(templateElement.content);
-          const node = builder.create(component);
+          const view = ViewFactory.createView(
+            templateElement.content,
+            this.domBinder
+          );
+          const node = view.create(component);
           domBinder.bind(node, { ...component, ...item });
           this.element.appendChild(node);
         });
@@ -71,33 +76,25 @@ class CompositeView extends AbstractView {
   }
 }
 
-class ViewFactory {
-  static createView(node: Node): IView {
+export class ViewFactory {
+  static createView(node: Node, domBinder: DOMBinder): IView {
     if (node instanceof HTMLElement && node.hasAttribute("*for")) {
-      return new ListView(node);
+      // Ici cela serra les directive structurel à utiliser manipuler ect ect
+      // Peut être que cela représentera un viewContainerRef avec lequel je manipulerai
+      // pour implémenter la structure
+      // Toujours aller vers une code plus SOLID. Toujours suivre SOLID
+      return new ListView(node, domBinder);
     } else if (
       (node instanceof HTMLElement || node instanceof DocumentFragment) &&
       node.querySelectorAll(":defined").length > 0
     ) {
       const compositeView = new CompositeView(node);
       node.querySelectorAll(":defined").forEach((child) => {
-        compositeView.addChild(this.createView(child));
+        compositeView.addChild(this.createView(child, domBinder));
       });
       return compositeView;
     } else {
       return new SimpleView(node);
     }
-  }
-}
-
-export class ViewBuilder {
-  private rootView: IView;
-
-  constructor(template: DocumentFragment) {
-    this.rootView = ViewFactory.createView(template);
-  }
-
-  create(component: any): Node {
-    return this.rootView.create(component);
   }
 }

@@ -1,4 +1,3 @@
-import { DOMBinder } from "../render/reactivity.ref";
 import { EventKey, Renderer } from "../render/renderer";
 
 interface ElementVisitor {
@@ -14,14 +13,6 @@ class VisitorElement implements ElementVisitor {
 
   visitElement(element: HTMLElement): void {
     this.visitors.forEach((visitor) => visitor.visitElement(element));
-  }
-}
-
-class ReactivityVisitor implements ElementVisitor {
-  constructor(private component: any, private domBinder: DOMBinder) {}
-
-  visitElement(element: HTMLElement): void {
-    this.domBinder.bind(element, this.component);
   }
 }
 
@@ -70,7 +61,6 @@ export class Compiler {
   compile() {
     const visitor = new VisitorElement();
     visitor.add(new BindingEventVisitor(this.component, this.renderer));
-    // visitor.add(new ReactivityVisitor(this.component, new DOMBinder()));
 
     this.traverseAndVisit(this.componentTemplate, visitor);
 

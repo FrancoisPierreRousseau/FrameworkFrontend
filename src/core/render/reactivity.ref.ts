@@ -46,6 +46,14 @@ abstract class BaseNodeBinding {
   }
 }
 
+class EventNodeBinding implements DOMBindingStrategy {
+  private readonly eventRegex = /^\(.*\)$/;
+
+  bind(node: Node, expression: string | string[], component: any): void {
+    throw new Error("Method not implemented.");
+  }
+}
+
 class TextNodeBinding extends BaseNodeBinding implements DOMBindingStrategy {
   bind(node: Node, expressions: string[], component: any): void {
     const originalContent = node.textContent ?? "";

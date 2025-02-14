@@ -8,7 +8,8 @@ import { IServiceCollection } from "../services/service.collection";
 import { viewChildSubject } from "../authoring/queries";
 import { Compiler } from "../compiler/compiler";
 import { Renderer } from "./renderer";
-import { ViewBuilder } from "./view.builder";
+import { ViewFactory } from "./view.builder";
+import { DOMBinder } from "./reactivity.ref";
 
 export interface ICustomerElement {
   component: any | null;
@@ -64,14 +65,17 @@ export const registerComponent = (
         throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
       }
 
-      const builder = new ViewBuilder(element.content);
-      const node = builder.create(this.component) as DocumentFragment;
+      const domBinder = new DOMBinder();
+      const view = ViewFactory.createView(element.content, domBinder);
+      const node = view.create(this.component) as DocumentFragment;
 
       //////////////////////////////////////////////////
 
       const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
 
+      // LEGACY
       const compiler = new Compiler(node, this.component, this.renderer);
+      // LEGACY
 
       shadow.appendChild(compiler.compile());
     }
