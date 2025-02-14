@@ -1,5 +1,6 @@
 import cloneDeep from "lodash.clonedeep";
 import isEqual from "lodash.isequal";
+import { EventKey, Renderer } from "./renderer";
 
 export class Signal<T> {
   private value: T;
@@ -49,8 +50,29 @@ abstract class BaseNodeBinding {
 class EventNodeBinding implements DOMBindingStrategy {
   private readonly eventRegex = /^\(.*\)$/;
 
-  bind(node: Node, expression: string | string[], component: any): void {
-    throw new Error("Method not implemented.");
+  constructor(private renderer: Renderer) {}
+
+  bind(element: HTMLElement, expression: string[], component: any): void {
+    const attrEvents = [...element.attributes].filter((attr) =>
+      this.eventRegex.test(attr.localName)
+    );
+
+    attrEvents.forEach((attr) => {
+      const event = attr.localName.slice(1, attr.localName.length - 1);
+      const method = attr.value;
+
+      if (!(method in component) || typeof component[method] !== "function") {
+        throw new Error("Method not found or invalid in the component");
+      }
+
+      this.renderer.listen(
+        element as HTMLElement,
+        event as EventKey,
+        component[method].bind(component)
+      );
+
+      element.removeAttributeNode(attr);
+    });
   }
 }
 
@@ -71,7 +93,9 @@ class TextNodeBinding extends BaseNodeBinding implements DOMBindingStrategy {
           signals.set(expression, signal);
           break;
         }
-        current = current[part];
+        if (current) {
+          current = current[part];
+        }
       }
     });
 
@@ -133,10 +157,16 @@ class AttributeBinding extends BaseNodeBinding implements DOMBindingStrategy {
 export class DOMBinder {
   private strategy: DOMBindingStrategy = new TextNodeBinding();
   private attrStrategy: DOMBindingStrategy = new AttributeBinding();
+  private eventStrategy: DOMBindingStrategy;
+
+  constructor(renderer: Renderer) {
+    this.eventStrategy = new EventNodeBinding(renderer);
+  }
 
   bind(node: Node, component: any): void {
     this.bindTextNodes(node, component);
     this.bindAttributes(node, component);
+    this.bindEvents(node, component);
   }
 
   bindTextNodes(node: Node, component: any): void {
@@ -170,6 +200,14 @@ export class DOMBinder {
     }
 
     element.childNodes.forEach((node) => this.bindAttributes(node, component));
+  }
+
+  private bindEvents(element: Node, component: any): void {
+    if (element instanceof HTMLElement) {
+      this.eventStrategy.bind(element, [], component);
+    }
+
+    element.childNodes.forEach((node) => this.bindEvents(node, component));
   }
 }
 

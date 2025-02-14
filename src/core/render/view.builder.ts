@@ -1,7 +1,7 @@
 import { DOMBinder, Signal } from "./reactivity.ref";
 
 interface IView {
-  create(component: any): Node;
+  create(component: any, domBinder: DOMBinder): Node;
 }
 
 abstract class AbstractView implements IView {
@@ -11,13 +11,11 @@ abstract class AbstractView implements IView {
     this.element = element;
   }
 
-  abstract create(component: any): Node;
+  abstract create(component: any, domBinder: DOMBinder): Node;
 }
 
 class SimpleView extends AbstractView {
-  create(component: any): Node {
-    const domBinder = new DOMBinder();
-
+  create(component: any, domBinder: DOMBinder): Node {
     domBinder.bind(this.element, component);
     return this.element;
   }
@@ -32,17 +30,17 @@ class ListView extends AbstractView {
   constructor(element: HTMLElement, private domBinder: DOMBinder) {
     super(element);
     this.template = element.innerHTML;
-    (this.element as HTMLElement).innerHTML = "";
     this.forAttr = element.getAttribute("*for") || "";
     element.removeAttribute("*for");
   }
 
-  create(component: any): Node {
+  create(component: any, domBinder: DOMBinder): Node {
     const signal = component[this.forAttr];
-    const domBinder = new DOMBinder();
 
     if (signal instanceof Signal) {
       const update = () => {
+        (this.element as HTMLElement).innerHTML = "";
+
         signal.get().forEach((item: any) => {
           const templateElement = document.createElement("template");
           templateElement.innerHTML = this.template;
@@ -50,7 +48,7 @@ class ListView extends AbstractView {
             templateElement.content,
             this.domBinder
           );
-          const node = view.create(component);
+          const node = view.create({ ...component, ...item }, domBinder);
           domBinder.bind(node, { ...component, ...item });
           this.element.appendChild(node);
         });
@@ -70,8 +68,8 @@ class CompositeView extends AbstractView {
     this.children.push(child);
   }
 
-  create(component: any): Node {
-    this.children.forEach((child) => child.create(component));
+  create(component: any, domBinder: DOMBinder): Node {
+    this.children.forEach((child) => child.create(component, domBinder));
     return this.element;
   }
 }

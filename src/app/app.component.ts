@@ -28,12 +28,29 @@ export class AppComponent {
     lastName: "lastName",
   });
 
-  // Fonctionne mais valeur ne peuvent pas être des signaux. Si on veut que cela reste dynamique
-  // alors on doit obligatoirement utiliser des webcomponent lors des itérations
+  // Pour l'instant, chaque valeur d'un tableau doit posséder des signaux...
   users = signal([
-    { name: signal("Alice"), age: signal(30) },
-    { name: signal("Bob"), age: signal(25) },
-    { name: signal("Charlie"), age: signal(35) },
+    {
+      name: signal("Alice"),
+      age: signal(30),
+      complexObj: signal({
+        prop1: "prop 1",
+      }),
+    },
+    {
+      name: signal("Bob"),
+      age: signal(25),
+      complexObj: signal({
+        prop1: "prop 2",
+      }),
+    },
+    {
+      name: signal("Charlie"),
+      age: signal(35),
+      complexObj: signal({
+        prop1: "prop 3",
+      }),
+    },
   ]);
 
   isDisabled = signal(true);
@@ -50,17 +67,26 @@ export class AppComponent {
   addUser() {
     this.users.update((users) => [
       ...users,
-      { name: signal("New User"), age: signal(20) },
+      {
+        name: signal("New User"),
+        age: signal(20),
+        complexObj: signal({
+          prop1: "prop4",
+        }),
+      },
     ]);
 
     this.users.update((users) => {
-      users[0] = { age: signal(30), name: signal("Jacob") };
+      users[0] = {
+        age: signal(30),
+        name: signal("Jacob"),
+        complexObj: signal({ prop1: "new prop" }),
+      };
       return users;
     });
   }
 
   toggleDisableButton() {
-    console.log("toggleDisableButton");
     this.isDisabled.set(!this.isDisabled.get());
   }
 

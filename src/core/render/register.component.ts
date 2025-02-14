@@ -6,7 +6,6 @@ import {
 } from "../components/component";
 import { IServiceCollection } from "../services/service.collection";
 import { viewChildSubject } from "../authoring/queries";
-import { Compiler } from "../compiler/compiler";
 import { Renderer } from "./renderer";
 import { ViewFactory } from "./view.builder";
 import { DOMBinder } from "./reactivity.ref";
@@ -54,8 +53,6 @@ export const registerComponent = (
 
       this.component = this.services.get(this.componentType);
 
-      ////////////////////////////////////////////////
-
       const parser = new DOMParser();
       const element = parser
         .parseFromString(componentTemplate.template, "text/html")
@@ -65,19 +62,13 @@ export const registerComponent = (
         throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
       }
 
-      const domBinder = new DOMBinder();
+      const domBinder = new DOMBinder(this.renderer);
       const view = ViewFactory.createView(element.content, domBinder);
-      const node = view.create(this.component) as DocumentFragment;
-
-      //////////////////////////////////////////////////
+      const node = view.create(this.component, domBinder) as DocumentFragment;
 
       const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
 
-      // LEGACY
-      const compiler = new Compiler(node, this.component, this.renderer);
-      // LEGACY
-
-      shadow.appendChild(compiler.compile());
+      shadow.appendChild(node);
     }
 
     async connectedCallback() {

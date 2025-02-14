@@ -11,7 +11,7 @@
     <br>
 
     <ul *for="users">
-        <li>{{name}} is {{age}} years old</li> 
+        <li>{{name}} is {{age}} years old {{complexObj.prop1}}</li> 
         <child-component #secondChild></child-component>
 
         <ul *for="users">
