@@ -13,6 +13,12 @@
     <ul *for="users">
         <li>{{name}} is {{age}} years old</li> 
         <child-component #secondChild></child-component>
+
+        <ul *for="users">
+            <li>{{name}} is {{age}} years old</li> 
+            <p>1: {{countSignal}} il doit être reactive</p>
+            <child-component #secondChild></child-component>
+        </ul>
     </ul>
 
     <child-component #secondChild></child-component>

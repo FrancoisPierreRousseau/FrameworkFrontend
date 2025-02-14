@@ -1,7 +1,7 @@
 import cloneDeep from "lodash.clonedeep";
 import isEqual from "lodash.isequal";
 
-class Signal<T> {
+export class Signal<T> {
   private value: T;
   private observers: Set<(value: T) => void> = new Set();
 
@@ -122,88 +122,46 @@ class AttributeBinding extends BaseNodeBinding implements DOMBindingStrategy {
   }
 }
 
-class ListBinding extends BaseNodeBinding implements DOMBindingStrategy {
-  bind(node: Node, expression: string, component: any): void {
-    if (node instanceof HTMLElement) {
-      const parts = expression.split(".");
-      let current = component;
-      for (const part of parts) {
-        if (current && current[part] instanceof Signal) {
-          const signal = current[part];
-          const template = node.innerHTML;
-          const updateList = () => {
-            const array = signal.get();
-            if (Array.isArray(array)) {
-              node.innerHTML = array
-                .map((item, index) => this.interpolate(template, item, index))
-                .join("");
-            }
-          };
-          signal.subscribe(updateList);
-          updateList();
-          return;
-        }
-        current = current[part];
-      }
-    }
-  }
-
-  private interpolate(template: string, item: any, index: number): string {
-    return template.replace(/{{(.*?)}}/g, (match, p1) => {
-      const value =
-        p1.trim() === "$index"
-          ? index
-          : this.getNestedValue(item, p1.trim().split("."));
-      return String(value);
-    });
-  }
-}
-
 export class DOMBinder {
   private strategy: DOMBindingStrategy = new TextNodeBinding();
   private attrStrategy: DOMBindingStrategy = new AttributeBinding();
-  private listStrategy: DOMBindingStrategy = new ListBinding();
 
-  bind(element: HTMLElement, component: any): void {
-    this.bindTextNodes(element, component);
-    this.bindAttributes(element, component);
-    this.bindLists(element, component);
+  bind(node: Node, component: any): void {
+    this.bindTextNodes(node, component);
+    this.bindAttributes(node, component);
   }
 
-  bindTextNodes(element: HTMLElement, component: any): void {
+  bindTextNodes(node: Node, component: any): void {
     const signalRegex = /{{(.*?)}}/g;
-    const textNodes = [...element.childNodes].filter(
-      (node) =>
-        node.nodeType === Node.TEXT_NODE &&
-        signalRegex.test(node.textContent || "")
+    let textNodes: ChildNode[] = [];
+
+    textNodes = [...node.childNodes].filter((node) =>
+      signalRegex.test(node.textContent || "")
     );
 
     textNodes.forEach((node) => {
       const expressions = node.textContent!.match(signalRegex);
       this.strategy.bind(node, expressions ?? [], component);
     });
+
+    node.childNodes.forEach((node) => this.bindTextNodes(node, component));
   }
 
-  private bindAttributes(element: HTMLElement, component: any): void {
+  private bindAttributes(element: Node, component: any): void {
     const signalRegex = /\[(.*?)\]/;
-    [...element.attributes].forEach((attr) => {
-      const match = attr.name.match(signalRegex);
-      if (match) {
-        const expression = `${attr.name.slice(1, -1)}=${attr.value}`;
-        this.attrStrategy.bind(element, expression, component);
-        element.removeAttribute(attr.name);
-      }
-    });
-  }
 
-  private bindLists(element: HTMLElement, component: any): void {
-    if (element.hasAttribute("*for") && element instanceof HTMLElement) {
-      const forAttr = element.getAttribute("*for");
-      if (forAttr) {
-        this.listStrategy.bind(element, forAttr, component);
-        element.removeAttribute("*for");
-      }
+    if (element instanceof HTMLElement) {
+      [...element.attributes].forEach((attr) => {
+        const match = attr.name.match(signalRegex);
+        if (match) {
+          const expression = `${attr.name.slice(1, -1)}=${attr.value}`;
+          this.attrStrategy.bind(element, expression, component);
+          element.removeAttribute(attr.name);
+        }
+      });
     }
+
+    element.childNodes.forEach((node) => this.bindAttributes(node, component));
   }
 }
 

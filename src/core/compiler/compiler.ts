@@ -1,4 +1,3 @@
-import { ComponentTemplate } from "../components/component";
 import { DOMBinder } from "../render/reactivity.ref";
 import { EventKey, Renderer } from "../render/renderer";
 
@@ -63,28 +62,19 @@ class BindingEventVisitor implements ElementVisitor {
 
 export class Compiler {
   constructor(
-    private readonly componentTemplate: ComponentTemplate,
+    private readonly componentTemplate: DocumentFragment,
     private readonly component: any,
     private readonly renderer: Renderer
   ) {}
 
   compile() {
-    const parser = new DOMParser();
-    const element = parser
-      .parseFromString(this.componentTemplate.template, "text/html")
-      .querySelector("template");
-
-    if (!element) {
-      throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
-    }
-
     const visitor = new VisitorElement();
     visitor.add(new BindingEventVisitor(this.component, this.renderer));
-    visitor.add(new ReactivityVisitor(this.component, new DOMBinder()));
+    // visitor.add(new ReactivityVisitor(this.component, new DOMBinder()));
 
-    this.traverseAndVisit(element.content, visitor);
+    this.traverseAndVisit(this.componentTemplate, visitor);
 
-    return element.content;
+    return this.componentTemplate;
   }
 
   private traverseAndVisit(node: Node, visitor: ElementVisitor): void {

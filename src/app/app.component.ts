@@ -31,32 +31,36 @@ export class AppComponent {
   // Fonctionne mais valeur ne peuvent pas être des signaux. Si on veut que cela reste dynamique
   // alors on doit obligatoirement utiliser des webcomponent lors des itérations
   users = signal([
-    { name: "Alice", age: 30 },
-    { name: "Bob", age: 25 },
-    { name: "Charlie", age: 35 },
+    { name: signal("Alice"), age: signal(30) },
+    { name: signal("Bob"), age: signal(25) },
+    { name: signal("Charlie"), age: signal(35) },
   ]);
 
-  isDisabled = signal(false);
+  isDisabled = signal(true);
 
   constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}
 
   afterViewInit() {
-    console.log(this.childComponent);
+    // console.log(this.childComponent);
     // console.log(this.otherComponent);
   }
 
   // @Input() prop1, prop2...
 
   addUser() {
-    this.users.update((users) => [...users, { name: "New User", age: 20 }]);
+    this.users.update((users) => [
+      ...users,
+      { name: signal("New User"), age: signal(20) },
+    ]);
 
     this.users.update((users) => {
-      users[0] = { age: 30, name: "Jacob" };
+      users[0] = { age: signal(30), name: signal("Jacob") };
       return users;
     });
   }
 
   toggleDisableButton() {
+    console.log("toggleDisableButton");
     this.isDisabled.set(!this.isDisabled.get());
   }
 

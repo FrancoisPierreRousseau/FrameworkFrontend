@@ -8,6 +8,7 @@ import { IServiceCollection } from "../services/service.collection";
 import { viewChildSubject } from "../authoring/queries";
 import { Compiler } from "../compiler/compiler";
 import { Renderer } from "./renderer";
+import { ViewBuilder } from "./view.builder";
 
 export interface ICustomerElement {
   component: any | null;
@@ -50,15 +51,27 @@ export const registerComponent = (
       // Via le @ViewChild, je pourrais facilement rajouter des options pour implémenter un ngModel native.
       this.services.bind(ElementRef).toConstantValue(this.elementRef);
 
-      const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
-
       this.component = this.services.get(this.componentType);
 
-      const compiler = new Compiler(
-        componentTemplate,
-        this.component,
-        this.renderer
-      );
+      ////////////////////////////////////////////////
+
+      const parser = new DOMParser();
+      const element = parser
+        .parseFromString(componentTemplate.template, "text/html")
+        .querySelector("template");
+
+      if (!element) {
+        throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
+      }
+
+      const builder = new ViewBuilder(element.content);
+      const node = builder.create(this.component) as DocumentFragment;
+
+      //////////////////////////////////////////////////
+
+      const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
+
+      const compiler = new Compiler(node, this.component, this.renderer);
 
       shadow.appendChild(compiler.compile());
     }
