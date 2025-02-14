@@ -74,6 +74,9 @@ class CompositeView extends AbstractView {
   }
 }
 
+// GROSSE REFLEXION LE ':DEFINED' RETOURNE DEJA TOUT LES NODES. PAS BESOIN DE RECUSIVITE
+// CELA SIMPLIFIERA ENORMEMENT LE CODE ET LA SEPERATION DES DIRECTIVES STRUCTUREL DU PROCESSUS D'EXECUTION NOMINAL.
+// PAS BESOIN DE RECALCULE
 export class ViewFactory {
   static createView(node: Node, domBinder: DOMBinder): IView {
     if (node instanceof HTMLElement && node.hasAttribute("*for")) {
