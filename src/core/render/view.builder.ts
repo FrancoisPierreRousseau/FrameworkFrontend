@@ -91,7 +91,11 @@ export class ViewFactory {
     ) {
       const compositeView = new CompositeView(node);
       node.querySelectorAll(":defined").forEach((child) => {
-        compositeView.addChild(this.createView(child, domBinder));
+        if (child instanceof HTMLElement && child.hasAttribute("*for")) {
+          compositeView.addChild(new ListView(child, domBinder));
+        } else {
+          compositeView.addChild(new SimpleView(child));
+        }
       });
       return compositeView;
     } else {
