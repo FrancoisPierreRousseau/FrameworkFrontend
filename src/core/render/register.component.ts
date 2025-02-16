@@ -63,7 +63,7 @@ export const registerComponent = (
       }
 
       const domBinder = new DOMBinder(this.renderer);
-      const view = ViewFactory.createView(element.content, domBinder);
+      const view = ViewFactory.createView(element.content);
       const node = view.create(this.component, domBinder) as DocumentFragment;
 
       const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed

@@ -1,7 +1,49 @@
+import { Container, inject } from "inversify";
 import { DOMBinder, Signal } from "./reactivity.ref";
+import { ElementRef } from "../components/component";
 
 interface IView {
   create(component: any, domBinder: DOMBinder): Node;
+}
+
+class TemplateRef {
+  constructor(public element: HTMLElement) {}
+}
+
+class EmbeddedViewRef implements IView {
+  rootNodes: Node[];
+
+  constructor(private templateRef: TemplateRef, private context: any) {
+    this.rootNodes = [document.importNode(templateRef.element, true)];
+  }
+
+  create(component: any, domBinder: DOMBinder): Node {
+    domBinder.bind(this.rootNodes[0], { ...component, ...this.context });
+    return this.rootNodes[0];
+  }
+
+  destroy() {}
+}
+
+class ViewContainerRef {
+  private views: IView[] = [];
+
+  constructor(
+    @inject(ElementRef) private elementRef: ElementRef<HTMLElement>
+  ) {}
+
+  createEmbeddedView(templateRef: TemplateRef, context: any): EmbeddedViewRef {
+    const view = new EmbeddedViewRef(templateRef, context);
+    this.views.push(view);
+    this.elementRef.nativeElement.appendChild(view.rootNodes[0]);
+    return view;
+  }
+
+  clear() {
+    // this.views.forEach(view => view.destroy());
+    this.views = [];
+    this.elementRef.nativeElement.innerHTML = "";
+  }
 }
 
 abstract class AbstractView implements IView {
@@ -27,11 +69,14 @@ class ListView extends AbstractView {
   private forAttr: string;
 
   // Seront passé surement par injection de dépendance (au moi le domBinder à minima)
-  constructor(element: HTMLElement, private domBinder: DOMBinder) {
-    super(element);
-    this.template = element.innerHTML;
-    this.forAttr = element.getAttribute("*for") || "";
-    element.removeAttribute("*for");
+  constructor(
+    @inject(TemplateRef) private templatRef: TemplateRef,
+    @inject(ViewContainerRef) containeRef: ViewContainerRef
+  ) {
+    super(templatRef.element);
+    this.template = templatRef.element.innerHTML;
+    this.forAttr = templatRef.element.getAttribute("*for") || "";
+    templatRef.element.removeAttribute("*for");
   }
 
   create(component: any, domBinder: DOMBinder): Node {
@@ -46,7 +91,7 @@ class ListView extends AbstractView {
           templateElement.innerHTML = this.template;
           const view = ViewFactory.createView(
             templateElement.content,
-            this.domBinder
+            domBinder
           );
           const node = view.create({ ...component, ...item }, domBinder);
           domBinder.bind(node, { ...component, ...item });
@@ -74,32 +119,52 @@ class CompositeView extends AbstractView {
   }
 }
 
-// GROSSE REFLEXION LE ':DEFINED' RETOURNE DEJA TOUT LES NODES. PAS BESOIN DE RECUSIVITE
-// CELA SIMPLIFIERA ENORMEMENT LE CODE ET LA SEPERATION DES DIRECTIVES STRUCTUREL DU PROCESSUS D'EXECUTION NOMINAL.
-// PAS BESOIN DE RECALCULE
 export class ViewFactory {
-  static createView(node: Node, domBinder: DOMBinder): IView {
-    if (node instanceof HTMLElement && node.hasAttribute("*for")) {
-      // Ici cela serra les directive structurel à utiliser manipuler ect ect
-      // Peut être que cela représentera un viewContainerRef avec lequel je manipulerai
-      // pour implémenter la structure
-      // Toujours aller vers une code plus SOLID. Toujours suivre SOLID
-      return new ListView(node, domBinder);
-    } else if (
-      (node instanceof HTMLElement || node instanceof DocumentFragment) &&
-      node.querySelectorAll(":defined").length > 0
-    ) {
-      const compositeView = new CompositeView(node);
-      node.querySelectorAll(":defined").forEach((child) => {
+  private static injector = new Container();
+
+  static createView(
+    node: Element | DocumentFragment
+  ): IView {
+    const compositeView = new CompositeView(node);
+    const childs = node.querySelectorAll(":defined");
+
+    if (childs.length > 0) {
+      childs.forEach((child) => {
         if (child instanceof HTMLElement && child.hasAttribute("*for")) {
-          compositeView.addChild(new ListView(child, domBinder));
+          const templateRef = new TemplateRef(child);
+
+          // child.removeAttribute("*for");
+
+          if (!this.injector.isBound(TemplateRef)) {
+            this.injector.bind(TemplateRef).toConstantValue(templateRef);
+          } else {
+            this.injector.rebind(TemplateRef).toConstantValue(templateRef);
+          }
+
+          if (!this.injector.isBound(ViewContainerRef)) {
+            this.injector
+              .bind(ViewContainerRef)
+              .toConstantValue(new ViewContainerRef(new ElementRef(child)));
+          } else {
+            this.injector
+              .rebind(ViewContainerRef)
+              .toConstantValue(new ViewContainerRef(new ElementRef(child)));
+          }
+
+          if (!this.injector.isBound(ListView)) {
+            this.injector.bind(ListView).toSelf().inTransientScope();
+          } else {
+            this.injector.rebind(ListView).toSelf().inTransientScope();
+          }
+
+          compositeView.addChild(this.injector.get(ListView));
+          // compositeView.addChild(new ListView(child, domBinder));
         } else {
           compositeView.addChild(new SimpleView(child));
         }
       });
-      return compositeView;
-    } else {
-      return new SimpleView(node);
     }
+
+    return compositeView;
   }
 }
