@@ -38,6 +38,8 @@ export const registerComponent = (
     constructor() {
       super();
 
+      const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
+
       // Ici initialisation des props
 
       this.componentType = componentTemplate.componentType;
@@ -55,6 +57,20 @@ export const registerComponent = (
 
       this.component = this.services.get(this.componentType);
 
+      // POUR AAVOIR ACCES POUR L'INSTANT AU COMPONENT PARENT et simuler les props
+      const parrent =
+        shadow.host.parentElement?.getRootNode() ?? shadow.host.parentNode;
+
+      if (parrent instanceof ShadowRoot) {
+        [...shadow.host.attributes].forEach((attr) => {
+          if (attr.name in this.component) {
+            this.component[attr.name] = (
+              parrent.host as unknown as ICustomerElement
+            ).component[attr.value];
+          }
+        });
+      }
+
       const parser = new DOMParser();
 
       const element = parser
@@ -68,8 +84,6 @@ export const registerComponent = (
       const domBinder = new DOMBinder(this.renderer);
       const view = ViewFactory.createView(element.content);
       const node = view.create(this.component, domBinder) as DocumentFragment;
-
-      const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
 
       shadow.appendChild(node);
     }
@@ -88,16 +102,6 @@ export const registerComponent = (
       await Promise.all(promises);
 
       if (this.shadowRoot) {
-        // POUR AAVOIR ACCES POUR L'INSTANT AU COMPONENT PARENT et simuler les props
-        /* console.log(this.shadowRoot.host);
-        const parrent =
-          this.shadowRoot.host.parentElement?.getRootNode() ??
-          this.shadowRoot.host.parentNode;
-
-        if (parrent instanceof ShadowRoot) {
-          console.log((parrent.host as unknown as ICustomerElement).component);
-        } */
-
         viewChildSubject.notify(this.componentType, this.shadowRoot);
       }
 

@@ -1,6 +1,6 @@
 <template>
     <h1 #h1>Hello World !</h1>
-    <child-component #firstChild></child-component>
+    <child-component #firstChild count="countSignal"></child-component>
 
     <div [attr.data-value2]="userSignal.lastName" [attr.data-value3]="countSignal" [attr.data-value]="userSignal.firstName">cela fonction exceptionnelement bien {{ countSignal }} {{userSignal.firstName}}</div>
 
@@ -12,18 +12,18 @@
 
     <ul *for="users">
         <li>{{name}} is {{age}} years old {{complexObj.prop1}}</li> 
-        <child-component #secondChild></child-component>
+        <child-component #secondChild count="countSignal"></child-component>
 
         <ul *for="users">
             <li>{{name}} is {{age}} years old</li> 
             <p>1: {{countSignal}} il doit être reactive</p>
-            <child-component #secondChild></child-component>
+            <child-component #secondChild count="countSignal"></child-component>
         </ul>
     </ul>
 
-    <child-component #secondChild></child-component>
-    <other-component #thirdChild></other-component>
-    <child-component #secondChild></child-component>
+    <child-component #secondChild count="countSignal"></child-component>
+    <other-component #thirdChild count="countSignal"></other-component>
+    <child-component #secondChild count="countSignal"></child-component>
 
     <button (click)="toggleDisableButton">toggleDisableButton</button>
     <button [disabled]="isDisabled" (click)="increment">Click me</button>
@@ -35,7 +35,7 @@
         <div>
             
             <div>
-                <child-component #secondChild></child-component>
+                <child-component #secondChild count="countSignal"></child-component>
             </div>
         </div>
     </div>
