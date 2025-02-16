@@ -10,42 +10,6 @@ class TemplateRef {
   constructor(public element: HTMLElement) {}
 }
 
-class EmbeddedViewRef implements IView {
-  rootNodes: Node[];
-
-  constructor(private templateRef: TemplateRef, private context: any) {
-    this.rootNodes = [document.importNode(templateRef.element, true)];
-  }
-
-  create(component: any, domBinder: DOMBinder): Node {
-    domBinder.bind(this.rootNodes[0], { ...component, ...this.context });
-    return this.rootNodes[0];
-  }
-
-  destroy() {}
-}
-
-class ViewContainerRef {
-  private views: IView[] = [];
-
-  constructor(
-    @inject(ElementRef) private elementRef: ElementRef<HTMLElement>
-  ) {}
-
-  createEmbeddedView(templateRef: TemplateRef, context: any): EmbeddedViewRef {
-    const view = new EmbeddedViewRef(templateRef, context);
-    this.views.push(view);
-    this.elementRef.nativeElement.appendChild(view.rootNodes[0]);
-    return view;
-  }
-
-  clear() {
-    // this.views.forEach(view => view.destroy());
-    this.views = [];
-    this.elementRef.nativeElement.innerHTML = "";
-  }
-}
-
 abstract class AbstractView implements IView {
   protected element: Node;
 
@@ -69,10 +33,7 @@ class ListView extends AbstractView {
   private forAttr: string;
 
   // Seront passé surement par injection de dépendance (au moi le domBinder à minima)
-  constructor(
-    @inject(TemplateRef) private templatRef: TemplateRef,
-    @inject(ViewContainerRef) containeRef: ViewContainerRef
-  ) {
+  constructor(@inject(TemplateRef) private templatRef: TemplateRef) {
     super(templatRef.element);
     this.template = templatRef.element.innerHTML;
     this.forAttr = templatRef.element.getAttribute("*for") || "";
@@ -89,12 +50,11 @@ class ListView extends AbstractView {
         signal.get().forEach((item: any) => {
           const templateElement = document.createElement("template");
           templateElement.innerHTML = this.template;
-          const view = ViewFactory.createView(
-            templateElement.content,
-            domBinder
-          );
+
+          const view = ViewFactory.createView(templateElement.content);
           const node = view.create({ ...component, ...item }, domBinder);
           domBinder.bind(node, { ...component, ...item });
+
           this.element.appendChild(node);
         });
       };
@@ -122,9 +82,7 @@ class CompositeView extends AbstractView {
 export class ViewFactory {
   private static injector = new Container();
 
-  static createView(
-    node: Element | DocumentFragment
-  ): IView {
+  static createView(node: Element | DocumentFragment): IView {
     const compositeView = new CompositeView(node);
     const childs = node.querySelectorAll(":defined");
 
@@ -139,16 +97,6 @@ export class ViewFactory {
             this.injector.bind(TemplateRef).toConstantValue(templateRef);
           } else {
             this.injector.rebind(TemplateRef).toConstantValue(templateRef);
-          }
-
-          if (!this.injector.isBound(ViewContainerRef)) {
-            this.injector
-              .bind(ViewContainerRef)
-              .toConstantValue(new ViewContainerRef(new ElementRef(child)));
-          } else {
-            this.injector
-              .rebind(ViewContainerRef)
-              .toConstantValue(new ViewContainerRef(new ElementRef(child)));
           }
 
           if (!this.injector.isBound(ListView)) {
