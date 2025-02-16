@@ -3,11 +3,10 @@ import { AppComponent } from "./app/app.component";
 import { Plateform } from "./core/plateform";
 
 /*
+  // Ajout plus tard de la gestions des styless css 
+
   // LIMITATIONS  //
-  Pour pouvoir gérer les signaux imbriqué, les passer en temps que prop (implémenter plus tard)
-  dans des composants enfant (parent -> enfant). 
-  Pour pouvoir modifier un element d'une liste de signaux, on peut le faire directement dans le update du signal. 
-  Pour les list, il ne peux y voir qu'une seul imbrication... :/ 
+  Pour pouvoir modifier un element d'une liste de signaux, on peut le faire directement dans le update du signal. :/ 
   Les slot sont déja intégré indirectement : https://developer.mozilla.org/en-US/docs/Web/HTML/Element/slot
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -58,7 +57,6 @@ import { Plateform } from "./core/plateform";
 */
 
 /*
-  Mon renderer ne devraa pas être singleton. Chaaque component possédera son propre renderer.
   Je l'utiliserai au destroy pour automatiser le desabonnement de chaque événement. 
 */
 
