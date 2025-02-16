@@ -15,6 +15,8 @@ export interface ICustomerElement {
   elementRef: ElementRef<HTMLElement>;
 }
 
+// Créer un systéme permettant de gérer l'insertion dynamique des vues
+
 export const registerComponent = (
   services: IServiceCollection,
   componentTemplate: ComponentTemplate
@@ -54,6 +56,7 @@ export const registerComponent = (
       this.component = this.services.get(this.componentType);
 
       const parser = new DOMParser();
+
       const element = parser
         .parseFromString(componentTemplate.template, "text/html")
         .querySelector("template");
@@ -85,6 +88,16 @@ export const registerComponent = (
       await Promise.all(promises);
 
       if (this.shadowRoot) {
+        // POUR AAVOIR ACCES POUR L'INSTANT AU COMPONENT PARENT et simuler les props
+        /* console.log(this.shadowRoot.host);
+        const parrent =
+          this.shadowRoot.host.parentElement?.getRootNode() ??
+          this.shadowRoot.host.parentNode;
+
+        if (parrent instanceof ShadowRoot) {
+          console.log((parrent.host as unknown as ICustomerElement).component);
+        } */
+
         viewChildSubject.notify(this.componentType, this.shadowRoot);
       }
 
