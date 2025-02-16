@@ -1,6 +1,6 @@
-import { Container, inject } from "inversify";
+import { inject } from "inversify";
 import { DOMBinder, Signal } from "./reactivity.ref";
-import { ElementRef } from "../components/component";
+import { ServicesColletion } from "../services/service.collection";
 
 interface IView {
   create(component: any, domBinder: DOMBinder): Node;
@@ -27,12 +27,10 @@ class SimpleView extends AbstractView {
   }
 }
 
-// Correspondra à une directive structurel
 class ListView extends AbstractView {
   private template: string;
   private forAttr: string;
 
-  // Seront passé surement par injection de dépendance (au moi le domBinder à minima)
   constructor(@inject(TemplateRef) private templatRef: TemplateRef) {
     super(templatRef.element);
     this.template = templatRef.element.innerHTML;
@@ -80,7 +78,7 @@ class CompositeView extends AbstractView {
 }
 
 export class ViewFactory {
-  private static injector = new Container();
+  private static injector = new ServicesColletion();
 
   static createView(node: Element | DocumentFragment): IView {
     const compositeView = new CompositeView(node);
@@ -90,23 +88,10 @@ export class ViewFactory {
       childs.forEach((child) => {
         if (child instanceof HTMLElement && child.hasAttribute("*for")) {
           const templateRef = new TemplateRef(child);
-
-          // child.removeAttribute("*for");
-
-          if (!this.injector.isBound(TemplateRef)) {
-            this.injector.bind(TemplateRef).toConstantValue(templateRef);
-          } else {
-            this.injector.rebind(TemplateRef).toConstantValue(templateRef);
-          }
-
-          if (!this.injector.isBound(ListView)) {
-            this.injector.bind(ListView).toSelf().inTransientScope();
-          } else {
-            this.injector.rebind(ListView).toSelf().inTransientScope();
-          }
+          this.injector.bind(TemplateRef).toConstantValue(templateRef);
+          this.injector.bind(ListView).toSelf().inTransientScope();
 
           compositeView.addChild(this.injector.get(ListView));
-          // compositeView.addChild(new ListView(child, domBinder));
         } else {
           compositeView.addChild(new SimpleView(child));
         }
