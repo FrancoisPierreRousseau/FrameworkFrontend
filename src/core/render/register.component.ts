@@ -57,11 +57,11 @@ export const registerComponent = (
 
       this.component = this.services.get(this.componentType);
 
-      // POUR AAVOIR ACCES POUR L'INSTANT AU COMPONENT PARENT et simuler les props
-      const parrent =
-        shadow.host.parentElement?.getRootNode() ?? shadow.host.parentNode;
+      const parrent = shadow.host.parentNode;
 
       if (parrent instanceof ShadowRoot) {
+        console.log(parrent.host);
+
         [...shadow.host.attributes].forEach((attr) => {
           if (attr.name in this.component) {
             this.component[attr.name] = (
