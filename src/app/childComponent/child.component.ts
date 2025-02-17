@@ -1,8 +1,9 @@
 import { inject } from "inversify";
-import { Component, ElementRef } from "../../core/components/component";
+import { Component } from "../../core/components/component";
 import { Renderer } from "../../core/render/renderer";
 import { ViewChild } from "../../core/authoring/queries";
 import { signal } from "../../core/render/reactivity.ref";
+import { ElementRef } from "../../core/render/view.builder";
 
 @Component({
   selector: "child-component",

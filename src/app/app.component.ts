@@ -1,9 +1,10 @@
 import { inject } from "inversify";
-import { Component, ElementRef } from "../core/components/component";
+import { Component } from "../core/components/component";
 import { ChildComponent } from "./childComponent/child.component";
 import { OtherComponent } from "./otherComponent/other.component";
 import { ViewChild } from "../core/authoring/queries";
 import { signal } from "../core/render/reactivity.ref";
+import { ElementRef } from "../core/render/view.builder";
 
 interface User {
   firstName: string;

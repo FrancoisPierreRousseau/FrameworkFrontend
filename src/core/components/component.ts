@@ -1,4 +1,5 @@
 import { viewChildFn } from "../authoring/queries";
+import { TemplateRef } from "../render/view.builder";
 
 export class ComponentFactory {
   private static componentTemplates: Set<ComponentTemplate> = new Set();
@@ -22,11 +23,6 @@ export type Constructor<T> = {
   prototype: T;
 };
 
-// Doit être géré par un renderer
-export class ElementRef<TElement extends Element> {
-  constructor(public nativeElement: TElement) {}
-}
-
 export class ComponentTemplate {
   private html: string;
 
@@ -38,14 +34,24 @@ export class ComponentTemplate {
     this.html = HTML_TEMPLATES[templateKey];
   }
 
-  get template(): string {
+  get template(): TemplateRef {
     if (!this.html) {
       throw new Error(
         `Aucun html spécifié pour le template ${this.templateKey}. Veuilliez verifier l'ortographe ou l'existance de votre template`
       );
     }
 
-    return this.html;
+    const parser = new DOMParser();
+
+    const element = parser
+      .parseFromString(this.html, "text/html")
+      .querySelector("template");
+
+    if (!element) {
+      throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
+    }
+
+    return new TemplateRef(element.content);
   }
 }
 

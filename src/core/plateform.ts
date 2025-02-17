@@ -3,7 +3,6 @@ import {
   ComponentFactory,
   ComponentTemplateMetadata,
 } from "./components/component";
-import { Renderer } from "./render/renderer";
 import { registerComponent } from "./render/register.component";
 import { ListView, ViewContainer } from "./render/view.builder";
 

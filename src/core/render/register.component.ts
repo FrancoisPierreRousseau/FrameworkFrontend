@@ -1,18 +1,17 @@
-import { Container } from "inversify";
+import { ComponentTemplate, Constructor } from "../components/component";
 import {
-  ComponentTemplate,
-  Constructor,
-  ElementRef,
-} from "../components/component";
-import { IServiceCollection } from "../services/service.collection";
+  IServiceCollection,
+  ServicesColletion,
+} from "../services/service.collection";
 import { viewChildSubject } from "../authoring/queries";
 import { Renderer } from "./renderer";
-import { ViewFactory } from "./view.builder";
+import { ElementRef, ShadowView, ViewFactory } from "./view.builder";
 import { DOMBinder } from "./reactivity.ref";
 
 export interface ICustomerElement {
   component: any | null;
   elementRef: ElementRef<HTMLElement>;
+  services: IServiceCollection;
 }
 
 // Créer un systéme permettant de gérer l'insertion dynamique des vues
@@ -27,18 +26,16 @@ export const registerComponent = (
   // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
   // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
   class CustomElement extends HTMLElement implements ICustomerElement {
-    private services: IServiceCollection = new Container({
+    public readonly services: IServiceCollection = new ServicesColletion({
       autoBindInjectable: true,
     });
-    public component: any | null = null;
-    public elementRef: ElementRef<HTMLElement> = new ElementRef(this);
-    private componentType: Constructor<any>;
+    public readonly component: any | null = null;
+    public readonly elementRef: ElementRef<HTMLElement> = new ElementRef(this);
+    private readonly componentType: Constructor<any>;
     private renderer: Renderer = new Renderer();
 
     constructor() {
       super();
-
-      const shadow = this.attachShadow({ mode: "open" }); // A passer dans le decorateur. A voir si faut closed
 
       // Ici initialisation des props
 
@@ -47,6 +44,7 @@ export const registerComponent = (
       this.services.parent = services;
 
       this.services.bind(this.componentType).toSelf().inTransientScope();
+      this.services.bind(ShadowView).toSelf().inTransientScope();
 
       this.elementRef = new ElementRef(this);
 
@@ -57,35 +55,12 @@ export const registerComponent = (
 
       this.component = this.services.get(this.componentType);
 
-      const parent = shadow.host.getRootNode();
-
-      if (parent instanceof ShadowRoot) {
-        [...shadow.host.attributes].forEach((attr) => {
-          if (attr.name in this.component) {
-            this.component[attr.name] = (
-              parent.host as unknown as ICustomerElement
-            ).component[attr.value];
-          }
-        });
-      }
-
-      const parser = new DOMParser();
-
-      const element = parser
-        .parseFromString(componentTemplate.template, "text/html")
-        .querySelector("template");
-
-      if (!element) {
-        throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
-      }
-
       const domBinder = new DOMBinder(this.renderer);
       const viewFactory = new ViewFactory(this.component, domBinder);
       this.services.bind(ViewFactory).toConstantValue(viewFactory);
 
-      viewFactory.createView(element.content, this.services);
-
-      shadow.appendChild(element.content);
+      const templateRef = componentTemplate.template;
+      viewFactory.createView(this.services, templateRef);
     }
 
     async connectedCallback() {
