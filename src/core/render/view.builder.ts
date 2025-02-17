@@ -72,13 +72,11 @@ export class EmbededView {
           const elementRef = new ElementRef(child);
           injector.bind(ElementRef).toConstantValue(elementRef);
           const list = injector.get(ListView);
-          list.create(component[child.getAttribute("*for") || ""], domBinder);
+          list.create(context[child.getAttribute("*for") || ""]);
         } else {
           domBinder.bind(child, context);
         }
       });
-
-      elementRef.nativeElement.appendChild(templateRef.element);
     }
   }
 }
@@ -114,10 +112,7 @@ export class ShadowView implements IView {
           const elementRef = new ElementRef(child);
           injector.bind(ElementRef).toConstantValue(elementRef);
           const list = injector.get(ListView);
-          list.create(
-            customerElement.component[child.getAttribute("*for") || ""],
-            domBinder
-          );
+          list.create(context[child.getAttribute("*for") || ""]);
           child.removeAttribute("*for");
         } else {
           domBinder.bind(child, context);
@@ -140,7 +135,7 @@ export class ListView {
     this.template = elementRef.nativeElement.innerHTML;
   }
 
-  create(signal: any, domBinder: DOMBinder): Node {
+  create(signal: any): Node {
     if (signal instanceof Signal) {
       const update = () => {
         this.elementRef.nativeElement.innerHTML = "";
@@ -152,6 +147,8 @@ export class ListView {
           const templateRef = new TemplateRef(templateElement.content);
 
           this.viewFactory.createEmbededView(templateRef, item);
+
+          this.elementRef.nativeElement.appendChild(templateRef.element);
         });
       };
       signal.subscribe(update);
