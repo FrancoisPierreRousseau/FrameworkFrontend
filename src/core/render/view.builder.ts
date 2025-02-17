@@ -26,9 +26,12 @@ export class ViewFactory {
           const elementRef = new ElementRef(child);
           this.injector.bind(ElementRef).toConstantValue(elementRef);
           const list = this.injector.get(ListView);
-          list.create(context, this.domBinder);
+          list.create(
+            this.component[child.getAttribute("*for") || ""],
+            this.domBinder
+          );
         } else {
-          this.domBinder.bind(child, context);
+          this.domBinder.bind(child, { ...context, ...this.component });
         }
       });
     }
@@ -83,7 +86,11 @@ export class ShadowView implements IView {
           const elementRef = new ElementRef(child);
           customerElement.services.bind(ElementRef).toConstantValue(elementRef);
           const list = customerElement.services.get(ListView);
-          list.create(customerElement.component, domBinder);
+          list.create(
+            customerElement.component[child.getAttribute("*for") || ""],
+            domBinder
+          );
+          child.removeAttribute("*for");
         } else {
           domBinder.bind(child, customerElement.component);
         }
@@ -97,20 +104,16 @@ export class ShadowView implements IView {
 // a deplacer dans un dossiers directive (et faire reference dans l'injecteur à des interfaces). Peut être cela resoudra le probléme d'initialisation
 export class ListView {
   private template: string;
-  private forAttr: string;
 
   constructor(
     @inject(ElementRef) private elementRef: ElementRef<HTMLElement>,
     @inject(ViewFactory) private viewFactory: ViewFactory
   ) {
     this.template = elementRef.nativeElement.innerHTML;
-    this.forAttr = elementRef.nativeElement.getAttribute("*for") || "";
-    elementRef.nativeElement.removeAttribute("*for");
   }
 
-  create(component: any, domBinder: DOMBinder): Node {
-    const signal = component[this.forAttr];
-
+  create(signal: any, domBinder: DOMBinder): Node {
+    console.log(signal);
     if (signal instanceof Signal) {
       const update = () => {
         this.elementRef.nativeElement.innerHTML = "";
@@ -119,12 +122,7 @@ export class ListView {
           const templateElement = document.createElement("template");
           templateElement.innerHTML = this.template;
 
-          this.viewFactory.createEmbededView(templateElement.content, {
-            ...component,
-            ...item,
-          });
-
-          domBinder.bind(templateElement.content, { ...component, ...item });
+          this.viewFactory.createEmbededView(templateElement.content, item);
 
           this.elementRef.nativeElement.appendChild(templateElement.content);
         });
