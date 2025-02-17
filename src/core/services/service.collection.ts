@@ -6,7 +6,7 @@ export class ServicesColletion extends Container {
   bind<T>(
     serviceIdentifier: interfaces.ServiceIdentifier<T>
   ): interfaces.BindingToSyntax<T> {
-    if (!this.isBound(serviceIdentifier)) {
+    if (!this.isCurrentBound(serviceIdentifier)) {
       return super.bind(serviceIdentifier);
     }
 

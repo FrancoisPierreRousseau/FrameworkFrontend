@@ -57,7 +57,7 @@ export const registerComponent = (
 
       this.component = this.services.get(this.componentType);
 
-      const parrent = shadow.host.parentNode;
+      const parrent = shadow.host.getRootNode();
 
       if (parrent instanceof ShadowRoot) {
         [...shadow.host.attributes].forEach((attr) => {
@@ -80,7 +80,10 @@ export const registerComponent = (
       }
 
       const domBinder = new DOMBinder(this.renderer);
-      const view = ViewFactory.createView(element.content);
+      const viewFactory = new ViewFactory();
+      this.services.bind(ViewFactory).toConstantValue(viewFactory);
+
+      const view = viewFactory.createView(element.content, this.services);
       const node = view.create(this.component, domBinder) as DocumentFragment;
 
       shadow.appendChild(node);

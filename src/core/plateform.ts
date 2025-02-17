@@ -5,6 +5,7 @@ import {
 } from "./components/component";
 import { Renderer } from "./render/renderer";
 import { registerComponent } from "./render/register.component";
+import { ListView } from "./render/view.builder";
 
 export type Constructor<T> = {
   new (...args: any[]): T;
@@ -36,7 +37,7 @@ class DefaultRenderStrategy implements RenderStrategy {
     }
 
     const services = new Container({ autoBindInjectable: true });
-    services.bind(Renderer).toSelf().inSingletonScope();
+    services.bind(ListView).toSelf().inTransientScope();
 
     const componentTemplates = ComponentFactory.create(app);
 
