@@ -57,10 +57,7 @@ export class AppComponent {
 
   constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}
 
-  afterViewInit() {
-    // console.log(this.childComponent);
-    // console.log(this.otherComponent);
-  }
+  afterViewInit() {}
 
   // @Input() prop1, prop2...
 

@@ -1,6 +1,7 @@
 import { inject } from "inversify";
 import { DOMBinder, Signal } from "./reactivity.ref";
 import { ServicesColletion } from "../services/service.collection";
+import { ElementRef } from "../components/component";
 
 interface IView {
   create(component: any, domBinder: DOMBinder): Node;
@@ -31,11 +32,13 @@ class ListView extends AbstractView {
   private template: string;
   private forAttr: string;
 
-  constructor(@inject(TemplateRef) private templatRef: TemplateRef) {
-    super(templatRef.element);
-    this.template = templatRef.element.innerHTML;
-    this.forAttr = templatRef.element.getAttribute("*for") || "";
-    templatRef.element.removeAttribute("*for");
+  constructor(
+    @inject(TemplateRef) private templatRef: ElementRef<HTMLElement>
+  ) {
+    super(templatRef.nativeElement);
+    this.template = templatRef.nativeElement.innerHTML;
+    this.forAttr = templatRef.nativeElement.getAttribute("*for") || "";
+    templatRef.nativeElement.removeAttribute("*for");
   }
 
   create(component: any, domBinder: DOMBinder): Node {
@@ -87,8 +90,8 @@ export class ViewFactory {
     if (childs.length > 0) {
       childs.forEach((child) => {
         if (child instanceof HTMLElement && child.hasAttribute("*for")) {
-          const templateRef = new TemplateRef(child);
-          this.injector.bind(TemplateRef).toConstantValue(templateRef);
+          const elementRef = new ElementRef(child);
+          this.injector.bind(ElementRef).toConstantValue(elementRef);
           this.injector.bind(ListView).toSelf().inTransientScope();
 
           compositeView.addChild(this.injector.get(ListView));

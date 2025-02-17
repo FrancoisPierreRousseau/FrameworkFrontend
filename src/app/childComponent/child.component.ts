@@ -19,7 +19,5 @@ export class ChildComponent {
     @inject(Renderer) public renderer: Renderer
   ) {}
 
-  afterViewInit() {
-    console.log(this.count);
-  }
+  afterViewInit() {}
 }

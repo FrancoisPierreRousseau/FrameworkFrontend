@@ -60,8 +60,6 @@ export const registerComponent = (
       const parrent = shadow.host.parentNode;
 
       if (parrent instanceof ShadowRoot) {
-        console.log(parrent.host);
-
         [...shadow.host.attributes].forEach((attr) => {
           if (attr.name in this.component) {
             this.component[attr.name] = (
