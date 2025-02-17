@@ -6,6 +6,7 @@ import {
 } from "../services/service.collection";
 import { ICustomerElement } from "./register.component";
 import { Renderer } from "./renderer";
+import { ServiceTest } from "../../app/service.test";
 
 // Doit être géré par un renderer
 export class ElementRef<TElement extends Element> {
@@ -129,10 +130,10 @@ export class ListView {
 
   constructor(
     @inject(ElementRef) private elementRef: ElementRef<HTMLElement>,
-    @inject(ViewFactory) private viewFactory: ViewFactory
+    @inject(ViewFactory) private viewFactory: ViewFactory,
+    @inject(ServiceTest) private serviceTest: ServiceTest
   ) {
     this.template = elementRef.nativeElement.innerHTML;
-    console.log("hello");
   }
 
   create(signal: any): Node {
