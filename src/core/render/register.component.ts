@@ -37,7 +37,6 @@ export const registerComponent = (
     public readonly component: any | null = null;
     public readonly elementRef: ElementRef<HTMLElement> = new ElementRef(this);
     private readonly componentType: Constructor<any>;
-    private renderer: Renderer = new Renderer();
 
     constructor() {
       super();
@@ -60,8 +59,7 @@ export const registerComponent = (
 
       this.component = this.services.get(this.componentType);
 
-      const domBinder = new DOMBinder(this.renderer);
-      const viewFactory = new ViewFactory(this.component, domBinder);
+      const viewFactory = new ViewFactory(this.component);
       this.services.bind(ViewFactory).toConstantValue(viewFactory);
 
       const templateRef = componentTemplate.template;

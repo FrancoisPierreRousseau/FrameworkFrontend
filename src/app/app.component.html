@@ -21,11 +21,13 @@
         </ul>
     </ul>
 
+    
     <!-- <child-component #secondChild count="countSignal"></child-component>
     <other-component #thirdChild count="countSignal"></other-component>
     <child-component #secondChild count="countSignal"></child-component> -->
 
     <button (click)="toggleDisableButton">toggleDisableButton</button>
+    <button (click)="deleteItem">delete item</button>
     <button [disabled]="isDisabled" (click)="increment">Click me</button>
 
     <p>1: {{countSignal}} il doit être reactive</p>

@@ -84,6 +84,13 @@ export class AppComponent {
     });
   }
 
+  deleteItem() {
+    this.users.update((users) => {
+      users.pop();
+      return users;
+    });
+  }
+
   toggleDisableButton() {
     this.isDisabled.set(!this.isDisabled.get());
   }
