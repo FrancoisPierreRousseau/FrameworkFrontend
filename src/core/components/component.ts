@@ -23,7 +23,7 @@ export type Constructor<T> = {
 };
 
 // Doit être géré par un renderer
-export class ElementRef<TElement extends HTMLElement> {
+export class ElementRef<TElement extends Element> {
   constructor(public nativeElement: TElement) {}
 }
 

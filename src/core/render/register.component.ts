@@ -57,13 +57,13 @@ export const registerComponent = (
 
       this.component = this.services.get(this.componentType);
 
-      const parrent = shadow.host.getRootNode();
+      const parent = shadow.host.getRootNode();
 
-      if (parrent instanceof ShadowRoot) {
+      if (parent instanceof ShadowRoot) {
         [...shadow.host.attributes].forEach((attr) => {
           if (attr.name in this.component) {
             this.component[attr.name] = (
-              parrent.host as unknown as ICustomerElement
+              parent.host as unknown as ICustomerElement
             ).component[attr.value];
           }
         });
@@ -80,13 +80,12 @@ export const registerComponent = (
       }
 
       const domBinder = new DOMBinder(this.renderer);
-      const viewFactory = new ViewFactory();
+      const viewFactory = new ViewFactory(this.component, domBinder);
       this.services.bind(ViewFactory).toConstantValue(viewFactory);
 
-      const view = viewFactory.createView(element.content, this.services);
-      const node = view.create(this.component, domBinder) as DocumentFragment;
+      viewFactory.createView(element.content, this.services);
 
-      shadow.appendChild(node);
+      shadow.appendChild(element.content);
     }
 
     async connectedCallback() {

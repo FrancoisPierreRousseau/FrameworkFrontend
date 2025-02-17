@@ -5,19 +5,15 @@ import {
   ServicesColletion,
 } from "../services/service.collection";
 import { ElementRef } from "../components/component";
+import { ICustomerElement } from "./register.component";
+import { Renderer } from "./renderer";
 
 export class ViewFactory {
-  injector = new ServicesColletion();
+  private injector = new ServicesColletion();
 
-  createView(
-    node: Element | DocumentFragment,
-    services: IServiceCollection | null = null
-  ): IView {
-    if (services) {
-      this.injector.parent = services;
-    }
+  constructor(private component: any, private domBinder: DOMBinder) {}
 
-    const compositeView = new CompositeView(node);
+  createEmbededView(node: Element | DocumentFragment, context: any) {
     const childs = node.querySelectorAll(":defined");
 
     if (childs.length > 0) {
@@ -25,15 +21,69 @@ export class ViewFactory {
         if (child instanceof HTMLElement && child.hasAttribute("*for")) {
           const elementRef = new ElementRef(child);
           this.injector.bind(ElementRef).toConstantValue(elementRef);
-
-          compositeView.addChild(this.injector.get(ListView));
+          const list = this.injector.get(ListView);
+          list.create(context, this.domBinder);
         } else {
-          compositeView.addChild(new SimpleView(child));
+          this.domBinder.bind(child, context);
         }
       });
     }
+  }
 
-    return compositeView;
+  createView(
+    node: Element | DocumentFragment,
+    services: IServiceCollection | null = null
+  ) {
+    if (services) {
+      this.injector.parent = services;
+    }
+
+    const childs = node.querySelectorAll(":defined");
+
+    if (childs.length > 0) {
+      childs.forEach((child) => {
+        if (child instanceof HTMLElement && child.hasAttribute("*for")) {
+          const elementRef = new ElementRef(child);
+          this.injector.bind(ElementRef).toConstantValue(elementRef);
+          const list = this.injector.get(ListView);
+          list.create(this.component, this.domBinder);
+        } else {
+          this.domBinder.bind(child, this.component);
+        }
+      });
+    }
+  }
+}
+
+class ShadowView {
+  private renderer = new Renderer();
+
+  constructor(
+    @inject(ElementRef) private elementRef: ElementRef<Element>,
+    @inject(ViewFactory) private viewFactory: ViewFactory
+  ) {
+    const shadow = elementRef.nativeElement.attachShadow({ mode: "open" });
+    const component = (shadow.host as unknown as ICustomerElement).component;
+    const parent = shadow.host.getRootNode();
+    const domBinder = new DOMBinder(this.renderer);
+
+    if (parent instanceof ShadowRoot) {
+      [...shadow.host.attributes].forEach((attr) => {
+        if (attr.name in component) {
+          component[attr.name] = (
+            parent.host as unknown as ICustomerElement
+          ).component[attr.value];
+        }
+      });
+    }
+  }
+}
+
+class EmbededView {
+  private renderer: Renderer = new Renderer();
+
+  constructor() {
+    const domBinder = new DOMBinder(this.renderer);
   }
 }
 
@@ -55,14 +105,8 @@ abstract class AbstractView implements IView {
   abstract create(component: any, domBinder: DOMBinder): Node;
 }
 
-class SimpleView extends AbstractView {
-  create(component: any, domBinder: DOMBinder): Node {
-    domBinder.bind(this.element, component);
-    return this.element;
-  }
-}
-
-export class ListView extends AbstractView {
+// a deplacer dans un dossiers directive (et faire reference dans l'injecteur à des interfaces). Peut être cela resoudra le probléme d'initialisation
+export class ListView {
   private template: string;
   private forAttr: string;
 
@@ -70,7 +114,6 @@ export class ListView extends AbstractView {
     @inject(ElementRef) private elementRef: ElementRef<HTMLElement>,
     @inject(ViewFactory) private viewFactory: ViewFactory
   ) {
-    super(elementRef.nativeElement);
     this.template = elementRef.nativeElement.innerHTML;
     this.forAttr = elementRef.nativeElement.getAttribute("*for") || "";
     elementRef.nativeElement.removeAttribute("*for");
@@ -81,36 +124,32 @@ export class ListView extends AbstractView {
 
     if (signal instanceof Signal) {
       const update = () => {
-        (this.element as HTMLElement).innerHTML = "";
+        this.elementRef.nativeElement.innerHTML = "";
 
         signal.get().forEach((item: any) => {
           const templateElement = document.createElement("template");
           templateElement.innerHTML = this.template;
 
-          const view = this.viewFactory.createView(templateElement.content);
-          const node = view.create({ ...component, ...item }, domBinder);
-          domBinder.bind(node, { ...component, ...item });
+          this.viewFactory.createEmbededView(templateElement.content, {
+            ...component,
+            ...item,
+          });
 
-          this.element.appendChild(node);
+          domBinder.bind(templateElement.content, { ...component, ...item });
+
+          this.elementRef.nativeElement.appendChild(templateElement.content);
         });
       };
       signal.subscribe(update);
       update();
     }
 
-    return this.element;
+    return this.elementRef.nativeElement;
   }
 }
 
-class CompositeView extends AbstractView {
-  private children: IView[] = [];
+export class ViewContainer {
+  constructor(@inject(ViewFactory) private viewFactory: ViewFactory) {}
 
-  addChild(child: IView) {
-    this.children.push(child);
-  }
-
-  create(component: any, domBinder: DOMBinder): Node {
-    this.children.forEach((child) => child.create(component, domBinder));
-    return this.element;
-  }
+  createViewComponent(services: IServiceCollection) {}
 }
