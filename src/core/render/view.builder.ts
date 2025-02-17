@@ -12,29 +12,24 @@ export class ElementRef<TElement extends Element> {
   constructor(public nativeElement: TElement) {}
 }
 
+let injector = new ServicesColletion();
+let component: any;
+const CONTEXT_TOKEN = Symbol.for("CONTEXT_TOKEN");
+
 export class ViewFactory {
   private injector = new ServicesColletion();
 
   constructor(private component: any, private domBinder: DOMBinder) {}
 
-  createEmbededView(node: Element | DocumentFragment, context: any) {
-    const childs = node.querySelectorAll(":defined");
+  createEmbededView(templateRef: TemplateRef, context: any) {
+    this.injector.bind(TemplateRef).toConstantValue(templateRef);
+    component = this.component;
+    injector = this.injector;
+    injector
+      .bind(CONTEXT_TOKEN)
+      .toConstantValue({ ...context, ...this.component });
 
-    if (childs.length > 0) {
-      childs.forEach((child) => {
-        if (child instanceof HTMLElement && child.hasAttribute("*for")) {
-          const elementRef = new ElementRef(child);
-          this.injector.bind(ElementRef).toConstantValue(elementRef);
-          const list = this.injector.get(ListView);
-          list.create(
-            this.component[child.getAttribute("*for") || ""],
-            this.domBinder
-          );
-        } else {
-          this.domBinder.bind(child, { ...context, ...this.component });
-        }
-      });
-    }
+    injector.get(EmbededView);
   }
 
   createView(
@@ -46,6 +41,10 @@ export class ViewFactory {
     }
 
     this.injector.bind(TemplateRef).toConstantValue(templateRef);
+    this.injector.bind(CONTEXT_TOKEN).toConstantValue(this.component);
+
+    injector = this.injector;
+
     return this.injector.get(ShadowView);
   }
 }
@@ -56,12 +55,41 @@ export class TemplateRef {
 
 export interface IView {}
 
+export class EmbededView {
+  private renderer = new Renderer();
+
+  constructor(
+    @inject(ElementRef) elementRef: ElementRef<Element>,
+    @inject(TemplateRef) templateRef: TemplateRef,
+    @inject(CONTEXT_TOKEN) context: any
+  ) {
+    const childs = templateRef.element.querySelectorAll(":defined");
+    const domBinder = new DOMBinder(this.renderer);
+
+    if (childs.length > 0) {
+      childs.forEach((child) => {
+        if (child instanceof HTMLElement && child.hasAttribute("*for")) {
+          const elementRef = new ElementRef(child);
+          injector.bind(ElementRef).toConstantValue(elementRef);
+          const list = injector.get(ListView);
+          list.create(component[child.getAttribute("*for") || ""], domBinder);
+        } else {
+          domBinder.bind(child, context);
+        }
+      });
+
+      elementRef.nativeElement.appendChild(templateRef.element);
+    }
+  }
+}
+
 export class ShadowView implements IView {
   private renderer = new Renderer();
 
   constructor(
     @inject(ElementRef) elementRef: ElementRef<Element>,
-    @inject(TemplateRef) templateRef: TemplateRef
+    @inject(TemplateRef) templateRef: TemplateRef,
+    @inject(CONTEXT_TOKEN) context: any
   ) {
     const shadow = elementRef.nativeElement.attachShadow({ mode: "open" });
     const customerElement = shadow.host as unknown as ICustomerElement;
@@ -84,15 +112,15 @@ export class ShadowView implements IView {
       childs.forEach((child) => {
         if (child instanceof HTMLElement && child.hasAttribute("*for")) {
           const elementRef = new ElementRef(child);
-          customerElement.services.bind(ElementRef).toConstantValue(elementRef);
-          const list = customerElement.services.get(ListView);
+          injector.bind(ElementRef).toConstantValue(elementRef);
+          const list = injector.get(ListView);
           list.create(
             customerElement.component[child.getAttribute("*for") || ""],
             domBinder
           );
           child.removeAttribute("*for");
         } else {
-          domBinder.bind(child, customerElement.component);
+          domBinder.bind(child, context);
         }
       });
     }
@@ -113,7 +141,6 @@ export class ListView {
   }
 
   create(signal: any, domBinder: DOMBinder): Node {
-    console.log(signal);
     if (signal instanceof Signal) {
       const update = () => {
         this.elementRef.nativeElement.innerHTML = "";
@@ -122,9 +149,9 @@ export class ListView {
           const templateElement = document.createElement("template");
           templateElement.innerHTML = this.template;
 
-          this.viewFactory.createEmbededView(templateElement.content, item);
+          const templateRef = new TemplateRef(templateElement.content);
 
-          this.elementRef.nativeElement.appendChild(templateElement.content);
+          this.viewFactory.createEmbededView(templateRef, item);
         });
       };
       signal.subscribe(update);

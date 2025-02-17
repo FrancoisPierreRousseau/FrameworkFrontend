@@ -5,7 +5,12 @@ import {
 } from "../services/service.collection";
 import { viewChildSubject } from "../authoring/queries";
 import { Renderer } from "./renderer";
-import { ElementRef, ShadowView, ViewFactory } from "./view.builder";
+import {
+  ElementRef,
+  EmbededView,
+  ShadowView,
+  ViewFactory,
+} from "./view.builder";
 import { DOMBinder } from "./reactivity.ref";
 
 export interface ICustomerElement {
@@ -45,7 +50,7 @@ export const registerComponent = (
 
       this.services.bind(this.componentType).toSelf().inTransientScope();
       this.services.bind(ShadowView).toSelf().inTransientScope();
-
+      this.services.bind(EmbededView).toSelf().inTransientScope();
       this.elementRef = new ElementRef(this);
 
       // console.log(this.elementRef.nativeElement.querySelectorAll("[\\#]"));
