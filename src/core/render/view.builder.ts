@@ -71,6 +71,8 @@ abstract class AbstractView implements IView {
           this.serviceCollection.bind(ElementRef).toConstantValue(elementRef);
           const list = this.serviceCollection.get(ListView);
           list.create(this.context[child.getAttribute("*for") || ""]);
+          // Création d'un context attaché au child, qui possédera l'instance de la directive.
+          // Ainsi dans le childrenView, j'aurai juste à renseigner sa référence pour requété dessus (type === instance.typ)
           child.removeAttribute("*for");
         } else {
           domBinder.bind(child, this.context);
@@ -82,15 +84,16 @@ abstract class AbstractView implements IView {
 
 export class EmbededView extends AbstractView implements IView {}
 
-export class ShadowView implements IView {
-  private renderer = new Renderer();
-
+export class ShadowView extends AbstractView implements IView {
   constructor(
     @inject(ElementRef) elementRef: ElementRef<Element>,
     @inject(TemplateRef) templateRef: TemplateRef,
     @inject(CONTEXT_TOKEN) context: any,
     @inject(ServicesColletion) serviceCollection: ServicesColletion
   ) {
+    // Création d'un context attaché au child, qui possédera l'instance du component #context implicitement.
+    // Ainsi dans le childrenView, j'aurai juste à renseigner sa référence pour requété dessus (type === instance.typ)
+
     const shadow = elementRef.nativeElement.attachShadow({ mode: "open" });
     const customerElement = shadow.host as unknown as ICustomerElement;
     const parent = shadow.host.getRootNode();
@@ -105,24 +108,7 @@ export class ShadowView implements IView {
       });
     }
 
-    const childs = templateRef.element.querySelectorAll(":defined");
-    const domBinder = new DOMBinder(this.renderer);
-
-    if (childs.length > 0) {
-      childs.forEach((child) => {
-        if (child instanceof HTMLElement && child.hasAttribute("*for")) {
-          const elementRef = new ElementRef(child);
-          serviceCollection.bind(ElementRef).toConstantValue(elementRef);
-          const list = serviceCollection.get(ListView);
-          list.create(context[child.getAttribute("*for") || ""]);
-          child.removeAttribute("*for");
-          // Ici je créerai un context que j'attacherais aux node courrent. (l'instance).
-          // Quand je voudrait récupérer les instances associé, je pourrais le faire dans le childrenView
-        } else {
-          domBinder.bind(child, context);
-        }
-      });
-    }
+    super(elementRef, templateRef, context, serviceCollection);
 
     shadow.appendChild(templateRef.element);
   }
