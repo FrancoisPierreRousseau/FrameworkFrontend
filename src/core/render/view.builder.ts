@@ -52,33 +52,35 @@ export class TemplateRef {
 
 export interface IView {}
 
-export class EmbededView implements IView {
-  private renderer = new Renderer();
+abstract class AbstractView implements IView {
+  protected renderer = new Renderer();
 
   constructor(
-    @inject(ElementRef) elementRef: ElementRef<Element>,
-    @inject(TemplateRef) templateRef: TemplateRef,
-    @inject(CONTEXT_TOKEN) context: any,
-    @inject(ServicesColletion) serviceCollection: ServicesColletion
+    @inject(ElementRef) protected elementRef: ElementRef<Element>,
+    @inject(TemplateRef) protected templateRef: TemplateRef,
+    @inject(CONTEXT_TOKEN) protected context: any,
+    @inject(ServicesColletion) protected serviceCollection: ServicesColletion
   ) {
-    const childs = templateRef.element.querySelectorAll(":defined");
+    const childs = this.templateRef.element.querySelectorAll(":defined");
     const domBinder = new DOMBinder(this.renderer);
 
     if (childs.length > 0) {
       childs.forEach((child) => {
         if (child instanceof HTMLElement && child.hasAttribute("*for")) {
           const elementRef = new ElementRef(child);
-          serviceCollection.bind(ElementRef).toConstantValue(elementRef);
-          const list = serviceCollection.get(ListView);
-          list.create(context[child.getAttribute("*for") || ""]);
+          this.serviceCollection.bind(ElementRef).toConstantValue(elementRef);
+          const list = this.serviceCollection.get(ListView);
+          list.create(this.context[child.getAttribute("*for") || ""]);
           child.removeAttribute("*for");
         } else {
-          domBinder.bind(child, context);
+          domBinder.bind(child, this.context);
         }
       });
     }
   }
 }
+
+export class EmbededView extends AbstractView implements IView {}
 
 export class ShadowView implements IView {
   private renderer = new Renderer();
@@ -114,6 +116,8 @@ export class ShadowView implements IView {
           const list = serviceCollection.get(ListView);
           list.create(context[child.getAttribute("*for") || ""]);
           child.removeAttribute("*for");
+          // Ici je créerai un context que j'attacherais aux node courrent. (l'instance).
+          // Quand je voudrait récupérer les instances associé, je pourrais le faire dans le childrenView
         } else {
           domBinder.bind(child, context);
         }
