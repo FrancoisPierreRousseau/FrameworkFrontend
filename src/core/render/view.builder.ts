@@ -99,6 +99,10 @@ export class ShadowView extends AbstractView implements IView {
     const parent = shadow.host.getRootNode();
 
     if (parent instanceof ShadowRoot) {
+      serviceCollection.parent = (
+        parent.host as unknown as ICustomerElement
+      ).services;
+
       [...shadow.host.attributes].forEach((attr) => {
         if (attr.name in customerElement.component) {
           customerElement.component[attr.name] = (

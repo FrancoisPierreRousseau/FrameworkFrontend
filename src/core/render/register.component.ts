@@ -34,17 +34,11 @@ export const registerComponent = (
     constructor() {
       super();
 
-      // Ici initialisation des props
-
       this.componentType = componentTemplate.componentType;
 
       this.services.parent = services;
 
       this.elementRef = new ElementRef(this);
-
-      // console.log(this.elementRef.nativeElement.querySelectorAll("[\\#]"));
-
-      // Via le @ViewChild, je pourrais facilement rajouter des options pour implémenter un ngModel native.
       this.services.bind(ElementRef).toConstantValue(this.elementRef);
 
       this.component = this.services.get(componentTemplate.componentType);
@@ -52,8 +46,7 @@ export const registerComponent = (
       const viewFactory = new ViewFactory(this.component);
       this.services.bind(ViewFactory).toConstantValue(viewFactory);
 
-      const templateRef = componentTemplate.template;
-      viewFactory.createView(this.services, templateRef);
+      viewFactory.createView(this.services, componentTemplate.template);
     }
 
     async connectedCallback() {
