@@ -43,10 +43,13 @@ export const registerComponent = (
 
       this.component = this.services.get(componentTemplate.componentType);
 
-      const viewFactory = new ViewFactory(this.component);
-      this.services.bind(ViewFactory).toConstantValue(viewFactory);
+      const viewFactory = this.services.get(ViewFactory);
 
-      viewFactory.createView(this.services, componentTemplate.template);
+      viewFactory.createView(
+        this.component,
+        this.services,
+        componentTemplate.template
+      );
     }
 
     async connectedCallback() {

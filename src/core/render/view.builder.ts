@@ -15,31 +15,35 @@ export class ElementRef<TElement extends Element> {
 
 const CONTEXT_TOKEN = Symbol.for("CONTEXT_TOKEN");
 
+// Gére la hierarchie des injectors et la construction des views
 export class ViewFactory {
   private injector = new ServicesColletion();
 
-  constructor(private component: any) {}
+  constructor() {}
 
-  createEmbededView(templateRef: TemplateRef, context: any) {
+  createEmbededView(
+    templateRef: TemplateRef,
+    context: any,
+    serviceCollection: ServicesColletion | null = null
+  ) {
+    this.injector.parent = serviceCollection;
+
     this.injector.bind(TemplateRef).toConstantValue(templateRef);
     this.injector.bind(ServicesColletion).toConstantValue(this.injector);
-    this.injector
-      .bind(CONTEXT_TOKEN)
-      .toConstantValue({ ...context, ...this.component });
+    this.injector.bind(CONTEXT_TOKEN).toConstantValue(context);
 
     this.injector.get(EmbededView);
   }
 
   createView(
+    component: any,
     services: IServiceCollection | null = null,
     templateRef: TemplateRef
   ) {
-    if (services) {
-      this.injector.parent = services;
-    }
+    this.injector.parent = services;
 
     this.injector.bind(TemplateRef).toConstantValue(templateRef);
-    this.injector.bind(CONTEXT_TOKEN).toConstantValue(this.component);
+    this.injector.bind(CONTEXT_TOKEN).toConstantValue(component);
     this.injector.bind(ServicesColletion).toConstantValue(this.injector);
 
     return this.injector.get(ShadowView);
@@ -68,6 +72,8 @@ abstract class AbstractView implements IView {
       childs.forEach((child) => {
         if (child instanceof HTMLElement && child.hasAttribute("*for")) {
           const elementRef = new ElementRef(child);
+
+          // Ecraase le ElementRef courrant
           this.serviceCollection.bind(ElementRef).toConstantValue(elementRef);
           const list = this.serviceCollection.get(ListView);
           list.create(this.context[child.getAttribute("*for") || ""]);
@@ -125,8 +131,11 @@ export class ListView {
   constructor(
     @inject(ElementRef) private elementRef: ElementRef<HTMLElement>,
     @inject(ViewFactory) private viewFactory: ViewFactory,
+    @inject(CONTEXT_TOKEN) private parentContext: any,
+    @inject(ServicesColletion) private servicesCollection: ServicesColletion,
     @inject(ServiceTest) private serviceTest: ServiceTest
   ) {
+    this.serviceTest.coucou();
     this.template = elementRef.nativeElement.innerHTML;
   }
 
@@ -134,14 +143,20 @@ export class ListView {
     if (signal instanceof Signal) {
       const update = () => {
         this.elementRef.nativeElement.innerHTML = "";
-        console.log(this.elementRef);
         signal.get().forEach((item: any) => {
           const templateElement = document.createElement("template");
           templateElement.innerHTML = this.template;
 
           const templateRef = new TemplateRef(templateElement.content);
 
-          this.viewFactory.createEmbededView(templateRef, item);
+          this.viewFactory.createEmbededView(
+            templateRef,
+            {
+              ...item,
+              ...this.parentContext,
+            },
+            this.servicesCollection
+          );
 
           this.elementRef.nativeElement.appendChild(templateRef.element);
         });
@@ -152,10 +167,4 @@ export class ListView {
 
     return this.elementRef.nativeElement;
   }
-}
-
-export class ViewContainer {
-  constructor(@inject(ViewFactory) private viewFactory: ViewFactory) {}
-
-  createViewComponent(services: IServiceCollection) {}
 }

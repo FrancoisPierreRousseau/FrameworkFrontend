@@ -8,7 +8,7 @@ import {
   EmbededView,
   ListView,
   ShadowView,
-  ViewContainer,
+  ViewFactory,
 } from "./render/view.builder";
 import { ServiceTest } from "../app/service.test";
 
@@ -43,10 +43,11 @@ class DefaultRenderStrategy implements RenderStrategy {
 
     const services = new Container({ autoBindInjectable: true });
     services.bind(ListView).toSelf().inTransientScope();
-    services.bind(ViewContainer).toSelf().inTransientScope();
-    services.bind(ServiceTest).toSelf().inTransientScope();
     services.bind(ShadowView).toSelf().inTransientScope();
     services.bind(EmbededView).toSelf().inTransientScope();
+    services.bind(ViewFactory).toSelf().inTransientScope();
+
+    services.bind(ServiceTest).toSelf().inTransientScope();
 
     const componentTemplates = ComponentFactory.create(app);
 
