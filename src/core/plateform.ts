@@ -4,7 +4,12 @@ import {
   ComponentTemplateMetadata,
 } from "./components/component";
 import { registerComponent } from "./render/register.component";
-import { ListView, ViewContainer } from "./render/view.builder";
+import {
+  EmbededView,
+  ListView,
+  ShadowView,
+  ViewContainer,
+} from "./render/view.builder";
 import { ServiceTest } from "../app/service.test";
 
 export type Constructor<T> = {
@@ -40,8 +45,14 @@ class DefaultRenderStrategy implements RenderStrategy {
     services.bind(ListView).toSelf().inTransientScope();
     services.bind(ViewContainer).toSelf().inTransientScope();
     services.bind(ServiceTest).toSelf().inTransientScope();
+    services.bind(ShadowView).toSelf().inTransientScope();
+    services.bind(EmbededView).toSelf().inTransientScope();
 
     const componentTemplates = ComponentFactory.create(app);
+
+    componentTemplates.forEach((template) => {
+      services.bind(template.componentType).toSelf().inTransientScope();
+    });
 
     componentTemplates.forEach((template) => {
       registerComponent(services, template);

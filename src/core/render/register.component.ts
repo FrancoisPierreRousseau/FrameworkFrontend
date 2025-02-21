@@ -4,14 +4,7 @@ import {
   ServicesColletion,
 } from "../services/service.collection";
 import { viewChildSubject } from "../authoring/queries";
-import { Renderer } from "./renderer";
-import {
-  ElementRef,
-  EmbededView,
-  ShadowView,
-  ViewFactory,
-} from "./view.builder";
-import { DOMBinder } from "./reactivity.ref";
+import { ElementRef, ViewFactory } from "./view.builder";
 
 export interface ICustomerElement {
   component: any | null;
@@ -47,9 +40,6 @@ export const registerComponent = (
 
       this.services.parent = services;
 
-      this.services.bind(this.componentType).toSelf().inTransientScope();
-      this.services.bind(ShadowView).toSelf().inTransientScope();
-      this.services.bind(EmbededView).toSelf().inTransientScope();
       this.elementRef = new ElementRef(this);
 
       // console.log(this.elementRef.nativeElement.querySelectorAll("[\\#]"));
@@ -57,7 +47,7 @@ export const registerComponent = (
       // Via le @ViewChild, je pourrais facilement rajouter des options pour implémenter un ngModel native.
       this.services.bind(ElementRef).toConstantValue(this.elementRef);
 
-      this.component = this.services.get(this.componentType);
+      this.component = this.services.get(componentTemplate.componentType);
 
       const viewFactory = new ViewFactory(this.component);
       this.services.bind(ViewFactory).toConstantValue(viewFactory);
