@@ -24,6 +24,8 @@ export const registerComponent = (
   // Lors de l'implémentation de l'événement déclenchant la suppresion du custom, faire attention à safarie pouvant rencontrer des comportement incohérents.
   // Pour une bonne implémentation: https://nolanlawson.com/2024/12/01/avoiding-unnecessary-cleanup-work-in-disconnectedcallback/
   class CustomElement extends HTMLElement implements ICustomerElement {
+    // Ce services là doit est dirrectement en rapport avec le type de component.
+    // Il doit se construire à la racine. Defaut de conception et perte en terme de performance.
     public readonly services: IServiceCollection = new ServicesColletion({
       autoBindInjectable: true,
     });
