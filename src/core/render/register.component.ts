@@ -43,7 +43,7 @@ export const registerComponent = (
       this.elementRef = new ElementRef(this);
       this.services.bind(ElementRef).toConstantValue(this.elementRef);
 
-      this.component = this.services.get(componentTemplate.componentType);
+      this.component = this.services.get(this.componentType);
 
       const viewFactory = this.services.get(ViewFactory);
 

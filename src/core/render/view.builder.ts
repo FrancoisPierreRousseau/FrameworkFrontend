@@ -24,9 +24,9 @@ export class ViewFactory {
   createEmbededView(
     templateRef: TemplateRef,
     context: any,
-    serviceCollection: ServicesColletion | null = null
+    services: ServicesColletion | null = null
   ) {
-    this.injector.parent = serviceCollection;
+    this.injector.parent = services;
 
     this.injector.bind(TemplateRef).toConstantValue(templateRef);
     this.injector.bind(ServicesColletion).toConstantValue(this.injector);
@@ -73,10 +73,12 @@ abstract class AbstractView implements IView {
         if (child instanceof HTMLElement && child.hasAttribute("*for")) {
           const elementRef = new ElementRef(child);
 
-          // Ecraase le ElementRef courrant
+          // Defaut de conception, on écrase le elementref de l'élement précédement.
+          // Cecis est une directivce donc rattché à la child est doit être stocké quelque pars (utilisé plus tard dans le cycle de vie)
           this.serviceCollection.bind(ElementRef).toConstantValue(elementRef);
           const list = this.serviceCollection.get(ListView);
           list.create(this.context[child.getAttribute("*for") || ""]);
+
           // Création d'un context attaché au child, qui possédera l'instance de la directive.
           // Ainsi dans le childrenView, j'aurai juste à renseigner sa référence pour requété dessus (type === instance.typ)
           child.removeAttribute("*for");
@@ -135,7 +137,6 @@ export class ListView {
     @inject(ServicesColletion) private servicesCollection: ServicesColletion,
     @inject(ServiceTest) private serviceTest: ServiceTest
   ) {
-    this.serviceTest.coucou();
     this.template = elementRef.nativeElement.innerHTML;
   }
 
@@ -146,14 +147,14 @@ export class ListView {
         signal.get().forEach((item: any) => {
           const templateElement = document.createElement("template");
           templateElement.innerHTML = this.template;
-
+          console.log(item);
           const templateRef = new TemplateRef(templateElement.content);
 
           this.viewFactory.createEmbededView(
             templateRef,
             {
-              ...item,
               ...this.parentContext,
+              ...item,
             },
             this.servicesCollection
           );
