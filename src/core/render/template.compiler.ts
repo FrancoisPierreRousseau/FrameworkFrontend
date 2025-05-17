@@ -1,13 +1,41 @@
+import { IServiceCollection } from "../services/service.collection";
+import { Signal } from "./reactivity.ref";
+import { EventKey, Renderer } from "./renderer";
+import { ElementRef, ListView } from "./view.builder";
+
 export interface CompiledTemplate {
   template: DocumentFragment;
   bindings: BindingInstruction[];
 }
 
 export type BindingInstruction =
-  | { type: "text"; node: Text; expression: string }
-  | { type: "attr"; node: Element; attr: string; expression: string }
-  | { type: "event"; node: Element; event: string; handler: string }
-  | { type: "directive"; node: Element; directive: string; expression: string };
+  | {
+      type: "text";
+      node: Text;
+      expressions: RegExpMatchArray;
+      bind(component: any): void;
+    }
+  | {
+      type: "attr";
+      node: Element;
+      attr: string;
+      expression: string;
+      bind(component: any): void;
+    }
+  | {
+      type: "event";
+      node: Element;
+      event: string;
+      handler: string;
+      bind(component: any, renderer: Renderer): void;
+    }
+  | {
+      type: "directive";
+      node: Element;
+      directive: string;
+      expression: string;
+      bind(services: IServiceCollection, context: any): void;
+    };
 
 export function compileTemplate(raw: string): CompiledTemplate {
   const parser = new DOMParser();
@@ -17,6 +45,9 @@ export function compileTemplate(raw: string): CompiledTemplate {
 
   const bindings: BindingInstruction[] = [];
 
+  const getNestedValue = (obj: any, path: string[]): any =>
+    path.reduce((current, part) => current && current[part], obj);
+
   const walk = (node: Node) => {
     if (
       node.nodeType === Node.TEXT_NODE &&
@@ -25,7 +56,47 @@ export function compileTemplate(raw: string): CompiledTemplate {
       bindings.push({
         type: "text",
         node: node as Text,
-        expression: node.textContent!.match(/{{(.*?)}}/)![1].trim(),
+        expressions: node.textContent!.match(/{{(.*?)}}/g)!,
+        bind(component: any) {
+          const originalContent = node.textContent ?? "";
+          const signals: Map<string, Signal<any>> = new Map();
+
+          this.expressions.forEach((expression) => {
+            const signalName = expression.slice(2, -2).trim();
+            const parts = signalName.split(".");
+            let current = component;
+
+            for (const part of parts) {
+              if (current && current[part] instanceof Signal) {
+                const signal = current[part];
+                signals.set(expression, signal);
+                break;
+              }
+              if (current) {
+                current = current[part];
+              }
+            }
+          });
+
+          const updateNode = () => {
+            let content = originalContent ?? "";
+
+            signals.forEach((signal, expression) => {
+              const signalName = expression.slice(2, -2).trim();
+              const parts = signalName.split(".");
+              const value = getNestedValue(signal.get(), parts.slice(1));
+              content = content.replaceAll(expression, String(value));
+            });
+
+            node.textContent = content;
+          };
+
+          signals.forEach((signal) => {
+            signal.subscribe(updateNode);
+          });
+
+          updateNode();
+        },
       });
     }
 
@@ -37,6 +108,42 @@ export function compileTemplate(raw: string): CompiledTemplate {
             node,
             attr: attr.name.slice(1, -1),
             expression: attr.value,
+            bind(component: any) {
+              const parts = this.expression.trim().split(".");
+              let current = component;
+              for (const part of parts) {
+                if (current && current[part] instanceof Signal) {
+                  const signal = current[part];
+
+                  if (this.attr in node) {
+                    const updateProperty = () => {
+                      const value = getNestedValue(
+                        signal.get(),
+                        parts.slice(1)
+                      );
+                      (node as any)[this.attr] = value;
+                    };
+                    signal.subscribe(updateProperty);
+                    updateProperty();
+                    return;
+                  } else {
+                    const update = () => {
+                      const value = getNestedValue(
+                        signal.get(),
+                        parts.slice(1)
+                      );
+                      node.setAttribute(this.attr.trim(), String(value));
+                    };
+                    signal.subscribe(update);
+                    update();
+                  }
+                  return;
+                }
+                current = current[part];
+              }
+
+              node.removeAttributeNode(attr);
+            },
           });
         } else if (attr.name.startsWith("(")) {
           bindings.push({
@@ -44,6 +151,25 @@ export function compileTemplate(raw: string): CompiledTemplate {
             node,
             event: attr.name.slice(1, -1),
             handler: attr.value,
+            bind(component: any, renderer: Renderer) {
+              const event = attr.localName.slice(1, attr.localName.length - 1);
+              const method = attr.value;
+
+              if (
+                !(method in component) ||
+                typeof component[method] !== "function"
+              ) {
+                throw new Error("Method not found or invalid in the component");
+              }
+
+              renderer.listen(
+                node,
+                event as EventKey,
+                component[method].bind(component)
+              );
+
+              node.removeAttributeNode(attr);
+            },
           });
         } else if (attr.name.startsWith("*")) {
           bindings.push({
@@ -51,6 +177,14 @@ export function compileTemplate(raw: string): CompiledTemplate {
             node,
             directive: attr.name,
             expression: attr.value,
+            bind(services: IServiceCollection, context: any) {
+              const elementRef = new ElementRef(this.node);
+
+              services.bind(ElementRef).toConstantValue(elementRef);
+              const list = services.get(ListView);
+              list.create(context[this.node.getAttribute("*for") || ""]);
+              this.node.removeAttributeNode(attr);
+            },
           });
         }
       });

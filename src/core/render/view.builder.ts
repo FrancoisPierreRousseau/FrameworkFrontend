@@ -1,5 +1,5 @@
 import { inject } from "inversify";
-import { DOMBinder, Signal } from "./reactivity.ref";
+import { Signal } from "./reactivity.ref";
 import {
   IServiceCollection,
   ServicesColletion,
@@ -7,6 +7,7 @@ import {
 import { ICustomerElement } from "./register.component";
 import { Renderer } from "./renderer";
 import { ServiceTest } from "../../app/service.test";
+import { BindingInstruction, compileTemplate } from "./template.compiler";
 
 // Doit être géré par un renderer
 export class ElementRef<TElement extends Element> {
@@ -51,7 +52,10 @@ export class ViewFactory {
 }
 
 export class TemplateRef {
-  constructor(public element: DocumentFragment) {}
+  constructor(
+    public element: DocumentFragment,
+    public bindings?: BindingInstruction[]
+  ) {}
 }
 
 export interface IView {}
@@ -65,28 +69,15 @@ abstract class AbstractView implements IView {
     @inject(CONTEXT_TOKEN) protected context: any,
     @inject(ServicesColletion) protected serviceCollection: ServicesColletion
   ) {
-    const childs = this.templateRef.element.querySelectorAll(":defined");
-    const domBinder = new DOMBinder(this.renderer);
-
-    if (childs.length > 0) {
-      childs.forEach((child) => {
-        if (child instanceof HTMLElement && child.hasAttribute("*for")) {
-          const elementRef = new ElementRef(child);
-
-          // Defaut de conception, on écrase le elementref de l'élement précédement.
-          // Cecis est une directivce donc rattché à la child est doit être stocké quelque pars (utilisé plus tard dans le cycle de vie)
-          this.serviceCollection.bind(ElementRef).toConstantValue(elementRef);
-          const list = this.serviceCollection.get(ListView);
-          list.create(this.context[child.getAttribute("*for") || ""]);
-
-          // Création d'un context attaché au child, qui possédera l'instance de la directive.
-          // Ainsi dans le childrenView, j'aurai juste à renseigner sa référence pour requété dessus (type === instance.typ)
-          child.removeAttribute("*for");
-        } else {
-          domBinder.bind(child, this.context);
-        }
-      });
-    }
+    templateRef.bindings?.forEach((binding) => {
+      if (binding.type === "directive") {
+        binding.bind(serviceCollection, context);
+      } else if (binding.type === "event") {
+        binding.bind(context, this.renderer);
+      } else {
+        binding.bind(context);
+      }
+    });
   }
 }
 
@@ -106,6 +97,7 @@ export class ShadowView extends AbstractView implements IView {
     const customerElement = shadow.host as unknown as ICustomerElement;
     const parent = shadow.host.getRootNode();
 
+    // On réccupére les variables d'en des parents
     if (parent instanceof ShadowRoot) {
       serviceCollection.parent = (
         parent.host as unknown as ICustomerElement
@@ -145,10 +137,15 @@ export class ListView {
       const update = () => {
         this.elementRef.nativeElement.innerHTML = "";
         signal.get().forEach((item: any) => {
-          const templateElement = document.createElement("template");
-          templateElement.innerHTML = this.template;
-          console.log(item);
-          const templateRef = new TemplateRef(templateElement.content);
+          if (!/^<template>[\s\S]*<\/template>$/.test(this.template)) {
+            this.template = `<template>${this.template}</template>`;
+          }
+          const templateCompiled = compileTemplate(this.template);
+
+          const templateRef = new TemplateRef(
+            templateCompiled.template,
+            templateCompiled.bindings
+          );
 
           this.viewFactory.createEmbededView(
             templateRef,

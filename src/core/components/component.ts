@@ -54,7 +54,7 @@ export class ComponentTemplate {
       throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
     }
 
-    return new TemplateRef(this.compiled.template);
+    return new TemplateRef(this.compiled.template, this.compiled.bindings);
   }
 
   get bindings(): BindingInstruction[] {
