@@ -1,4 +1,9 @@
 import { viewChildFn } from "../authoring/queries";
+import {
+  BindingInstruction,
+  CompiledTemplate,
+  compileTemplate,
+} from "../render/template.compiler";
 import { TemplateRef } from "../render/view.builder";
 
 export class ComponentFactory {
@@ -24,6 +29,8 @@ export type Constructor<T> = {
 };
 
 export class ComponentTemplate {
+  public compiled: CompiledTemplate;
+
   private html: string;
 
   constructor(
@@ -32,26 +39,26 @@ export class ComponentTemplate {
     public componentType: Constructor<any>
   ) {
     this.html = HTML_TEMPLATES[templateKey];
-  }
 
-  get template(): TemplateRef {
     if (!this.html) {
       throw new Error(
         `Aucun html spécifié pour le template ${this.templateKey}. Veuilliez verifier l'ortographe ou l'existance de votre template`
       );
     }
 
-    const parser = new DOMParser();
+    this.compiled = compileTemplate(this.html);
+  }
 
-    const element = parser
-      .parseFromString(this.html, "text/html")
-      .querySelector("template");
-
-    if (!element) {
+  get template(): TemplateRef {
+    if (!this.compiled.template) {
       throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
     }
 
-    return new TemplateRef(element.content);
+    return new TemplateRef(this.compiled.template);
+  }
+
+  get bindings(): BindingInstruction[] {
+    return this.compiled.bindings;
   }
 }
 
