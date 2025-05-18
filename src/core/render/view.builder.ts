@@ -14,7 +14,7 @@ export class ElementRef<TElement extends Element> {
   constructor(public nativeElement: TElement) {}
 }
 
-const CONTEXT_TOKEN = Symbol.for("CONTEXT_TOKEN");
+export const CONTEXT_TOKEN = Symbol.for("CONTEXT_TOKEN");
 
 // Gére la hierarchie des injectors et la construction des views
 export class ViewFactory {
