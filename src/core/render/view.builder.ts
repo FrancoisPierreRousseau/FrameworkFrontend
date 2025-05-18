@@ -1,12 +1,10 @@
 import { inject } from "inversify";
-import { Signal } from "./reactivity.ref";
 import {
   IServiceCollection,
   ServicesColletion,
 } from "../services/service.collection";
 import { ICustomerElement } from "./register.component";
 import { Renderer } from "./renderer";
-import { ServiceTest } from "../../app/service.test";
 import { BindingInstruction, compileTemplate } from "./template.compiler";
 
 // Doit être géré par un renderer
@@ -115,54 +113,5 @@ export class ShadowView extends AbstractView implements IView {
     super(elementRef, templateRef, context, serviceCollection);
 
     shadow.appendChild(templateRef.element);
-  }
-}
-
-// a deplacer dans un dossiers directive (et faire reference dans l'injecteur à des interfaces). Peut être cela resoudra le probléme d'initialisation
-export class ListView {
-  private template: string;
-
-  constructor(
-    @inject(ElementRef) private elementRef: ElementRef<HTMLElement>,
-    @inject(ViewFactory) private viewFactory: ViewFactory,
-    @inject(CONTEXT_TOKEN) private parentContext: any,
-    @inject(ServicesColletion) private servicesCollection: ServicesColletion,
-    @inject(ServiceTest) private serviceTest: ServiceTest
-  ) {
-    this.template = elementRef.nativeElement.innerHTML;
-  }
-
-  create(signal: any): Node {
-    if (signal instanceof Signal) {
-      const update = () => {
-        this.elementRef.nativeElement.innerHTML = "";
-        signal.get().forEach((item: any) => {
-          if (!/^<template>[\s\S]*<\/template>$/.test(this.template)) {
-            this.template = `<template>${this.template}</template>`;
-          }
-          const templateCompiled = compileTemplate(this.template);
-
-          const templateRef = new TemplateRef(
-            templateCompiled.template,
-            templateCompiled.bindings
-          );
-
-          this.viewFactory.createEmbededView(
-            templateRef,
-            {
-              ...this.parentContext,
-              ...item,
-            },
-            this.servicesCollection
-          );
-
-          this.elementRef.nativeElement.appendChild(templateRef.element);
-        });
-      };
-      signal.subscribe(update);
-      update();
-    }
-
-    return this.elementRef.nativeElement;
   }
 }

@@ -1,9 +1,5 @@
 import { viewChildFn } from "../authoring/queries";
-import {
-  BindingInstruction,
-  CompiledTemplate,
-  compileTemplate,
-} from "../render/template.compiler";
+import { compileTemplate } from "../render/template.compiler";
 import { TemplateRef } from "../render/view.builder";
 
 export class ComponentFactory {
