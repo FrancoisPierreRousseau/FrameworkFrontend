@@ -27,7 +27,7 @@ export class ListView {
     if (signal instanceof Signal) {
       const update = () => {
         this.elementRef.nativeElement.innerHTML = "";
-        signal.get().forEach((item: any) => {
+        signal.get().forEach((item: any, index: number) => {
           const templateCompiled = compileTemplate(this.template);
 
           const templateRef = new TemplateRef(
@@ -40,6 +40,7 @@ export class ListView {
             {
               ...this.parentContext,
               ...item,
+              index,
             },
             this.servicesCollection
           );

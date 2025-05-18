@@ -4,13 +4,9 @@ import {
   ComponentTemplateMetadata,
 } from "./components/component";
 import { registerComponent } from "./render/register.component";
-import {
-  EmbededView,
-  ListView,
-  ShadowView,
-  ViewFactory,
-} from "./render/view.builder";
+import { EmbededView, ShadowView, ViewFactory } from "./render/view.builder";
 import { ServiceTest } from "../app/service.test";
+import { ListView } from "./directives/list.view";
 
 export type Constructor<T> = {
   new (...args: any[]): T;

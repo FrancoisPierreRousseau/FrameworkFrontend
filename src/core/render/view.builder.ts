@@ -5,7 +5,7 @@ import {
 } from "../services/service.collection";
 import { ICustomerElement } from "./register.component";
 import { Renderer } from "./renderer";
-import { BindingInstruction, compileTemplate } from "./template.compiler";
+import { BindingInstruction } from "./template.compiler";
 
 // Doit être géré par un renderer
 export class ElementRef<TElement extends Element> {

@@ -41,6 +41,7 @@ export const registerComponent = (
       this.services.parent = services;
 
       this.elementRef = new ElementRef(this);
+
       this.services.bind(ElementRef).toConstantValue(this.elementRef);
 
       this.component = this.services.get(this.componentType);

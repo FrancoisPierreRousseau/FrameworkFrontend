@@ -1,6 +1,5 @@
 import cloneDeep from "lodash.clonedeep";
 import isEqual from "lodash.isequal";
-import { EventKey, Renderer } from "./renderer";
 
 export class Signal<T> {
   private value: T;

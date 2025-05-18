@@ -1,7 +1,8 @@
+import { ListView } from "../directives/list.view";
 import { IServiceCollection } from "../services/service.collection";
 import { Signal } from "./reactivity.ref";
 import { EventKey, Renderer } from "./renderer";
-import { ElementRef, ListView } from "./view.builder";
+import { ElementRef } from "./view.builder";
 
 export interface CompiledTemplate {
   template: DocumentFragment;
@@ -60,6 +61,7 @@ export function compileTemplate(raw: string): CompiledTemplate {
         bind(component: any) {
           const originalContent = this.node.textContent ?? "";
           const signals: Map<string, Signal<any>> = new Map();
+          const statiqueValues: Map<string, string> = new Map();
 
           this.expressions.forEach((expression) => {
             const signalName = expression.slice(2, -2).trim();
@@ -71,7 +73,16 @@ export function compileTemplate(raw: string): CompiledTemplate {
                 const signal = current[part];
                 signals.set(expression, signal);
                 break;
+              } else if (
+                current &&
+                typeof current === "object" &&
+                !Array.isArray(current)
+              ) {
+                const value = current[part];
+                statiqueValues.set(expression, String(value));
+                break;
               }
+
               if (current) {
                 current = current[part];
               }
@@ -86,6 +97,10 @@ export function compileTemplate(raw: string): CompiledTemplate {
               const parts = signalName.split(".");
               const value = getNestedValue(signal.get(), parts.slice(1));
               content = content.replaceAll(expression, String(value));
+            });
+
+            statiqueValues.forEach((value, expression) => {
+              content = content.replaceAll(expression, value);
             });
 
             this.node.textContent = content;
