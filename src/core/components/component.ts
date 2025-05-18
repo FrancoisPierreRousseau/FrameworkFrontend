@@ -29,8 +29,6 @@ export type Constructor<T> = {
 };
 
 export class ComponentTemplate {
-  public compiled: CompiledTemplate;
-
   private html: string;
 
   constructor(
@@ -45,20 +43,16 @@ export class ComponentTemplate {
         `Aucun html spécifié pour le template ${this.templateKey}. Veuilliez verifier l'ortographe ou l'existance de votre template`
       );
     }
-
-    this.compiled = compileTemplate(this.html);
   }
 
   get template(): TemplateRef {
-    if (!this.compiled.template) {
+    const compiled = compileTemplate(this.html);
+
+    if (!compiled.template) {
       throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
     }
 
-    return new TemplateRef(this.compiled.template, this.compiled.bindings);
-  }
-
-  get bindings(): BindingInstruction[] {
-    return this.compiled.bindings;
+    return new TemplateRef(compiled.template, compiled.bindings);
   }
 }
 

@@ -24,7 +24,7 @@ export type BindingInstruction =
     }
   | {
       type: "event";
-      node: Element;
+      node: HTMLElement;
       event: string;
       handler: string;
       bind(component: any, renderer: Renderer): void;
@@ -58,7 +58,7 @@ export function compileTemplate(raw: string): CompiledTemplate {
         node: node as Text,
         expressions: node.textContent!.match(/{{(.*?)}}/g)!,
         bind(component: any) {
-          const originalContent = node.textContent ?? "";
+          const originalContent = this.node.textContent ?? "";
           const signals: Map<string, Signal<any>> = new Map();
 
           this.expressions.forEach((expression) => {
@@ -88,7 +88,7 @@ export function compileTemplate(raw: string): CompiledTemplate {
               content = content.replaceAll(expression, String(value));
             });
 
-            node.textContent = content;
+            this.node.textContent = content;
           };
 
           signals.forEach((signal) => {
@@ -115,13 +115,13 @@ export function compileTemplate(raw: string): CompiledTemplate {
                 if (current && current[part] instanceof Signal) {
                   const signal = current[part];
 
-                  if (this.attr in node) {
+                  if (this.attr in this.node) {
                     const updateProperty = () => {
                       const value = getNestedValue(
                         signal.get(),
                         parts.slice(1)
                       );
-                      (node as any)[this.attr] = value;
+                      (this.node as any)[this.attr] = value;
                     };
                     signal.subscribe(updateProperty);
                     updateProperty();
@@ -132,7 +132,7 @@ export function compileTemplate(raw: string): CompiledTemplate {
                         signal.get(),
                         parts.slice(1)
                       );
-                      node.setAttribute(this.attr.trim(), String(value));
+                      this.node.setAttribute(this.attr.trim(), String(value));
                     };
                     signal.subscribe(update);
                     update();
@@ -142,7 +142,7 @@ export function compileTemplate(raw: string): CompiledTemplate {
                 current = current[part];
               }
 
-              node.removeAttributeNode(attr);
+              this.node.removeAttributeNode(attr);
             },
           });
         } else if (attr.name.startsWith("(")) {
@@ -163,12 +163,12 @@ export function compileTemplate(raw: string): CompiledTemplate {
               }
 
               renderer.listen(
-                node,
+                this.node,
                 event as EventKey,
                 component[method].bind(component)
               );
 
-              node.removeAttributeNode(attr);
+              this.node.removeAttributeNode(attr);
             },
           });
         } else if (attr.name.startsWith("*")) {
