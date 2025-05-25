@@ -7,7 +7,6 @@ import {
   ViewFactory,
 } from "../render/view.builder";
 import { Injector } from "../services/service.collection";
-import { Signal } from "../render/reactivity.ref";
 import { compileTemplate } from "../render/template.compiler";
 
 export class ForDirective {
@@ -23,7 +22,7 @@ export class ForDirective {
     this.template = `<template>${elementRef.nativeElement.innerHTML}</template>`;
   }
 
-  apply(values: any): Node {
+  apply(values: any) {
     this.elementRef.nativeElement.innerHTML = "";
     values.forEach((item: any, index: number) => {
       const templateCompiled = compileTemplate(this.template);
@@ -43,9 +42,8 @@ export class ForDirective {
         this.servicesCollection
       );
 
+      // Cela doit être le viewFactory qui doit gérer cette opération
       this.elementRef.nativeElement.appendChild(templateRef.element);
     });
-
-    return this.elementRef.nativeElement;
   }
 }
