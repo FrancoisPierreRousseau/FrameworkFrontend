@@ -1,21 +1,18 @@
 import { ComponentTemplate, Constructor } from "../components/component";
-import {
-  IServiceCollection,
-  ServicesColletion,
-} from "../services/service.collection";
+import { IInjector, Injector } from "../services/service.collection";
 import { viewChildSubject } from "../authoring/queries";
 import { ElementRef, ViewFactory } from "./view.builder";
 
 export interface ICustomerElement {
   component: any | null;
   elementRef: ElementRef<HTMLElement>;
-  services: IServiceCollection;
+  services: IInjector;
 }
 
 // Créer un systéme permettant de gérer l'insertion dynamique des vues
 
 export const registerComponent = (
-  services: IServiceCollection,
+  services: IInjector,
   componentTemplate: ComponentTemplate
 ) => {
   // C'est au renderer de se charger de rendre
@@ -26,7 +23,7 @@ export const registerComponent = (
   class CustomElement extends HTMLElement implements ICustomerElement {
     // Ce services là doit est dirrectement en rapport avec le type de component.
     // Il doit se construire à la racine. Defaut de conception et perte en terme de performance.
-    public readonly services: IServiceCollection = new ServicesColletion({
+    public readonly services: IInjector = new Injector({
       autoBindInjectable: true,
     });
     public readonly component: any | null = null;

@@ -3,6 +3,13 @@ import { AppComponent } from "./app/app.component";
 import { Plateform } from "./core/plateform";
 
 /*
+  Ce qu'il me manque c'est le systéme de RXJS.
+  C'est à dire avoir la possibilité de créer des subjects réagissant au déclenchement d'un
+  observer. 
+
+  Création d'une abstraction au niveau des directives (via une interface), et permettre
+  la personnalisation des selectors attaché aux différentes directives.
+
   // Ajout plus tard de la gestions des styless css 
 
   // LIMITATIONS  //
@@ -12,13 +19,10 @@ import { Plateform } from "./core/plateform";
 
   // Regarder si je peux pas by passe les limitations en utilisan les slot pour les viewchild de même componant imbriqués... 
   // Si celaa fonctionne on peut déja contourner certain probléme lié au *for
-
   
-  Prochaine "evo" intégré les props. 
 
   ViewhChild: Enregistrer l'intégralité des éléments possédant un ref en plus des component. Passer l'élément principal 
               pour utiliser querySelectorAll ....  
-              J'aurais un compiler pour asocier les events avec les templates
 
   First: https://github.com/angular/angular/blob/main/packages/core/src/platform/platform_ref.ts#L41 -> bootstrapModule
          Compilation (comportement différents), chargement des ressources ect... 

@@ -6,7 +6,7 @@ import {
 import { registerComponent } from "./render/register.component";
 import { EmbededView, ShadowView, ViewFactory } from "./render/view.builder";
 import { ServiceTest } from "../app/service.test";
-import { ListView } from "./directives/list.view";
+import { ForDirective } from "./directives/for.directive";
 
 export type Constructor<T> = {
   new (...args: any[]): T;
@@ -38,7 +38,7 @@ class DefaultRenderStrategy implements RenderStrategy {
     }
 
     const services = new Container({ autoBindInjectable: true });
-    services.bind(ListView).toSelf().inTransientScope();
+    services.bind(ForDirective).toSelf().inTransientScope();
     services.bind(ShadowView).toSelf().inTransientScope();
     services.bind(EmbededView).toSelf().inTransientScope();
     services.bind(ViewFactory).toSelf().inTransientScope();

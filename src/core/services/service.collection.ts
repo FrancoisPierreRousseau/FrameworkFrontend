@@ -1,8 +1,8 @@
 import { Container, interfaces } from "inversify";
 
-export interface IServiceCollection extends interfaces.Container {}
+export interface IInjector extends interfaces.Container {}
 
-export class ServicesColletion extends Container {
+export class Injector extends Container {
   bind<T>(
     serviceIdentifier: interfaces.ServiceIdentifier<T>
   ): interfaces.BindingToSyntax<T> {

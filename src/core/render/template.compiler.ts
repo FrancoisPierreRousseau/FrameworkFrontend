@@ -1,5 +1,5 @@
-import { ListView } from "../directives/list.view";
-import { IServiceCollection } from "../services/service.collection";
+import { ForDirective } from "../directives/for.directive";
+import { IInjector } from "../services/service.collection";
 import { Signal } from "./reactivity.ref";
 import { EventKey, Renderer } from "./renderer";
 import { ElementRef } from "./view.builder";
@@ -35,7 +35,7 @@ export type BindingInstruction =
       node: Element;
       directive: string;
       expression: string;
-      bind(services: IServiceCollection, context: any): void;
+      bind(services: IInjector, context: any): void;
     };
 
 export function compileTemplate(raw: string): CompiledTemplate {
@@ -192,12 +192,19 @@ export function compileTemplate(raw: string): CompiledTemplate {
             node,
             directive: attr.name,
             expression: attr.value,
-            bind(services: IServiceCollection, context: any) {
+            bind(services: IInjector, context: any) {
               const elementRef = new ElementRef(this.node);
 
               services.bind(ElementRef).toConstantValue(elementRef);
-              const list = services.get(ListView);
-              list.create(context[this.node.getAttribute("*for") || ""]);
+              const list = services.get(ForDirective);
+
+              // Je me demande si un signal ne doit pas être créer ici
+              const signal = context[this.node.getAttribute("*for") || ""];
+              if (signal instanceof Signal) {
+                signal.subscribe(list.apply.bind(list));
+                list.apply(signal.get());
+              }
+
               this.node.removeAttributeNode(attr);
             },
           });

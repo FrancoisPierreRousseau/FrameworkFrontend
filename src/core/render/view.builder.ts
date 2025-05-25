@@ -1,8 +1,5 @@
 import { inject } from "inversify";
-import {
-  IServiceCollection,
-  ServicesColletion,
-} from "../services/service.collection";
+import { IInjector, Injector } from "../services/service.collection";
 import { ICustomerElement } from "./register.component";
 import { Renderer } from "./renderer";
 import { BindingInstruction } from "./template.compiler";
@@ -16,19 +13,19 @@ export const CONTEXT_TOKEN = Symbol.for("CONTEXT_TOKEN");
 
 // Gére la hierarchie des injectors et la construction des views
 export class ViewFactory {
-  private injector = new ServicesColletion();
+  private injector = new Injector();
 
   constructor() {}
 
   createEmbededView(
     templateRef: TemplateRef,
     context: any,
-    services: ServicesColletion | null = null
+    services: Injector | null = null
   ) {
     this.injector.parent = services;
 
     this.injector.bind(TemplateRef).toConstantValue(templateRef);
-    this.injector.bind(ServicesColletion).toConstantValue(this.injector);
+    this.injector.bind(Injector).toConstantValue(this.injector);
     this.injector.bind(CONTEXT_TOKEN).toConstantValue(context);
 
     this.injector.get(EmbededView);
@@ -36,14 +33,14 @@ export class ViewFactory {
 
   createView(
     component: any,
-    services: IServiceCollection | null = null,
+    services: IInjector | null = null,
     templateRef: TemplateRef
   ) {
     this.injector.parent = services;
 
     this.injector.bind(TemplateRef).toConstantValue(templateRef);
     this.injector.bind(CONTEXT_TOKEN).toConstantValue(component);
-    this.injector.bind(ServicesColletion).toConstantValue(this.injector);
+    this.injector.bind(Injector).toConstantValue(this.injector);
 
     return this.injector.get(ShadowView);
   }
@@ -65,7 +62,7 @@ abstract class AbstractView implements IView {
     @inject(ElementRef) protected elementRef: ElementRef<Element>,
     @inject(TemplateRef) protected templateRef: TemplateRef,
     @inject(CONTEXT_TOKEN) protected context: any,
-    @inject(ServicesColletion) protected serviceCollection: ServicesColletion
+    @inject(Injector) protected serviceCollection: Injector
   ) {
     templateRef.bindings?.forEach((binding) => {
       if (binding.type === "directive") {
@@ -86,7 +83,7 @@ export class ShadowView extends AbstractView implements IView {
     @inject(ElementRef) elementRef: ElementRef<Element>,
     @inject(TemplateRef) templateRef: TemplateRef,
     @inject(CONTEXT_TOKEN) context: any,
-    @inject(ServicesColletion) serviceCollection: ServicesColletion
+    @inject(Injector) serviceCollection: Injector
   ) {
     // Création d'un context attaché au child, qui possédera l'instance du component #context implicitement.
     // Ainsi dans le childrenView, j'aurai juste à renseigner sa référence pour requété dessus (type === instance.typ)
