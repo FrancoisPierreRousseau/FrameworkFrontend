@@ -2,7 +2,7 @@ import { inject } from "inversify";
 import { IInjector, Injector } from "../services/service.collection";
 import { ICustomerElement } from "./register.component";
 import { Renderer } from "./renderer";
-import { BindingInstruction } from "./template.compiler";
+import { compileTemplate } from "./template.compiler";
 
 // Doit être géré par un renderer
 export class ElementRef<TElement extends Element> {
@@ -47,10 +47,31 @@ export class ViewFactory {
 }
 
 export class TemplateRef {
-  constructor(
-    public element: DocumentFragment,
-    public bindings?: BindingInstruction[]
-  ) {}
+  private fragment: DocumentFragment;
+
+  constructor(private raw: string /*public element: DocumentFragment */) {
+    this.fragment = this.creatFragment();
+  }
+
+  public get element(): DocumentFragment {
+    if (this.fragment.childNodes.length === 0) {
+      this.fragment = this.creatFragment();
+    }
+
+    return this.fragment;
+  }
+
+  private creatFragment() {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(this.raw, "text/html");
+    const templateEl = doc.querySelector("template");
+
+    if (!templateEl) {
+      throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
+    }
+
+    return templateEl.content;
+  }
 }
 
 export interface IView {}
@@ -64,7 +85,8 @@ abstract class AbstractView implements IView {
     @inject(CONTEXT_TOKEN) protected context: any,
     @inject(Injector) protected serviceCollection: Injector
   ) {
-    templateRef.bindings?.forEach((binding) => {
+    const bindings = compileTemplate(this.templateRef);
+    bindings?.forEach((binding) => {
       if (binding.type === "directive") {
         binding.bind(serviceCollection, context);
       } else if (binding.type === "event") {
@@ -88,7 +110,9 @@ export class ShadowView extends AbstractView implements IView {
     // Création d'un context attaché au child, qui possédera l'instance du component #context implicitement.
     // Ainsi dans le childrenView, j'aurai juste à renseigner sa référence pour requété dessus (type === instance.typ)
 
-    const shadow = elementRef.nativeElement.attachShadow({ mode: "open" });
+    const shadow: ShadowRoot = elementRef.nativeElement.attachShadow({
+      mode: "open",
+    });
     const customerElement = shadow.host as unknown as ICustomerElement;
     const parent = shadow.host.getRootNode();
 

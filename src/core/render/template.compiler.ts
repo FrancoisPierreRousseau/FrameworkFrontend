@@ -2,11 +2,15 @@ import { ForDirective } from "../directives/for.directive";
 import { IInjector } from "../services/service.collection";
 import { Signal } from "./reactivity.ref";
 import { EventKey, Renderer } from "./renderer";
-import { ElementRef } from "./view.builder";
+import { ElementRef, TemplateRef } from "./view.builder";
 
 export interface CompiledTemplate {
   template: DocumentFragment;
   bindings: BindingInstruction[];
+}
+
+export function createTemplateRef(raw: string): TemplateRef {
+  return new TemplateRef(raw);
 }
 
 export type BindingInstruction =
@@ -38,11 +42,14 @@ export type BindingInstruction =
       bind(services: IInjector, context: any): void;
     };
 
-export function compileTemplate(raw: string): CompiledTemplate {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(raw, "text/html");
-  const templateEl = doc.querySelector("template");
-  const fragment = templateEl!.content.cloneNode(true) as DocumentFragment;
+// Cela ne doit pas prendre un Raw mais un templateRef
+export function compileTemplate(
+  templateRef: TemplateRef
+): BindingInstruction[] {
+  // const parser = new DOMParser();
+  // const doc = parser.parseFromString(raw, "text/html");
+  // const templateEl = doc.querySelector("template");
+  const fragment = templateRef.element as DocumentFragment;
 
   const bindings: BindingInstruction[] = [];
 
@@ -194,15 +201,21 @@ export function compileTemplate(raw: string): CompiledTemplate {
             expression: attr.value,
             bind(services: IInjector, context: any) {
               const elementRef = new ElementRef(this.node);
+              const template = `<template>${elementRef.nativeElement.innerHTML}</template>`;
+              const templateRef = createTemplateRef(template);
 
               services.bind(ElementRef).toConstantValue(elementRef);
-              const list = services.get(ForDirective);
+              services.bind(TemplateRef).toConstantValue(templateRef);
 
-              // Je me demande si un signal ne doit pas être créer ici
-              const signal = context[this.node.getAttribute("*for") || ""];
-              if (signal instanceof Signal) {
-                signal.subscribe(list.apply.bind(list));
-                list.apply(signal.get());
+              if (this.node.hasAttribute("*for")) {
+                const list = services.get(ForDirective);
+
+                this.node.hasAttribute("*for");
+                const signal = context[this.node.getAttribute("*for") || ""];
+                if (signal instanceof Signal) {
+                  signal.subscribe(list.apply.bind(list));
+                  list.apply(signal.get());
+                }
               }
 
               this.node.removeAttributeNode(attr);
@@ -217,5 +230,5 @@ export function compileTemplate(raw: string): CompiledTemplate {
 
   walk(fragment);
 
-  return { template: fragment, bindings };
+  return bindings;
 }

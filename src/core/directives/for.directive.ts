@@ -7,43 +7,34 @@ import {
   ViewFactory,
 } from "../render/view.builder";
 import { Injector } from "../services/service.collection";
-import { compileTemplate } from "../render/template.compiler";
 
 export class ForDirective {
-  private template: string;
-
   constructor(
     @inject(ElementRef) private elementRef: ElementRef<HTMLElement>,
     @inject(ViewFactory) private viewFactory: ViewFactory,
     @inject(CONTEXT_TOKEN) private parentContext: any,
-    @inject(Injector) private servicesCollection: Injector,
-    @inject(ServiceTest) private serviceTest: ServiceTest
-  ) {
-    this.template = `<template>${elementRef.nativeElement.innerHTML}</template>`;
-  }
+    @inject(Injector) private injector: Injector,
+    @inject(TemplateRef) private templateRef: TemplateRef
+  ) {}
 
   apply(values: any) {
     this.elementRef.nativeElement.innerHTML = "";
+
     values.forEach((item: any, index: number) => {
-      const templateCompiled = compileTemplate(this.template);
-
-      const templateRef = new TemplateRef(
-        templateCompiled.template,
-        templateCompiled.bindings
-      );
-
       this.viewFactory.createEmbededView(
-        templateRef,
+        this.templateRef,
         {
           ...this.parentContext,
           ...item,
           index,
         },
-        this.servicesCollection
+        this.injector
       );
 
       // Cela doit être le viewFactory qui doit gérer cette opération
-      this.elementRef.nativeElement.appendChild(templateRef.element);
+      // le ShadowRoot devrait se trouver au sein du ElementRef ?. Ou trouver un mecanisme pour
+      // pour abstraite tout cela
+      this.elementRef.nativeElement.appendChild(this.templateRef.element);
     });
   }
 }

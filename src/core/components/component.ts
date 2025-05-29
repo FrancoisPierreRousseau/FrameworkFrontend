@@ -1,5 +1,5 @@
 import { viewChildFn } from "../authoring/queries";
-import { compileTemplate } from "../render/template.compiler";
+import { createTemplateRef } from "../render/template.compiler";
 import { TemplateRef } from "../render/view.builder";
 
 export class ComponentFactory {
@@ -42,13 +42,8 @@ export class ComponentTemplate {
   }
 
   get template(): TemplateRef {
-    const compiled = compileTemplate(this.html);
-
-    if (!compiled.template) {
-      throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
-    }
-
-    return new TemplateRef(compiled.template, compiled.bindings);
+    const templateRef = createTemplateRef(this.html);
+    return templateRef;
   }
 }
 
