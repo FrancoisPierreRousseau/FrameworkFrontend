@@ -3,6 +3,9 @@ import { AppComponent } from "./app/app.component";
 import { Plateform } from "./core/plateform";
 
 /*
+  Au lieu de l'utilisatiion d'un contexte root, il serrait préférable de créer un namesace
+  host (pour les directive) permettant de récupérer le component parent et l'injecter en tant que context. 
+
   Ce qu'il me manque c'est le systéme de RXJS.
   C'est à dire avoir la possibilité de créer des subjects réagissant au déclenchement d'un
   observer. 

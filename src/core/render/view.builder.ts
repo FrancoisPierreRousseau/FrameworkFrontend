@@ -4,7 +4,6 @@ import { ICustomerElement } from "./register.component";
 import { Renderer } from "./renderer";
 import { compileTemplate } from "./template.compiler";
 
-// Doit être géré par un renderer
 export class ElementRef<TElement extends Element> {
   constructor(public nativeElement: TElement) {}
 }
@@ -30,11 +29,17 @@ export class ViewFactory {
     this.injector.bind(Injector).toConstantValue(this.injector);
     this.injector.bind(CONTEXT_TOKEN).toConstantValue(context);
 
-    this.injector.get(EmbededView);
+    const embededViewRef = this.injector.get(EmbededView);
 
     this.elementRef.nativeElement.appendChild(templateRef.element);
+
+    return embededViewRef;
   }
 
+  // Cette méthode fonctionne que partiellement, dans le sens que
+  // le webcomponent devrait être insérer à la fin dans le nativement element. Ce n'est à l'heure pas le cas
+  // Cependant cela devrait être le cas. Donc gérer la construction du selector root par ce systéme là
+  // pourrait être intéréssant pour la standardisaition.
   createView(
     component: any,
     services: IInjector | null = null,
@@ -46,7 +51,7 @@ export class ViewFactory {
     this.injector.bind(CONTEXT_TOKEN).toConstantValue(component);
     this.injector.bind(Injector).toConstantValue(this.injector);
 
-    return this.injector.get(ShadowView);
+    return this.injector.get(ComponentRef);
   }
 
   clear() {
@@ -82,16 +87,15 @@ export class TemplateRef {
   }
 }
 
-export interface IView {}
-
-abstract class AbstractView implements IView {
+// Pourra implémenter un destroy pour disparaitre du dom par exemple.
+// ou encore une methode pour réaparaitre au même endroit.
+abstract class ViewRef {
   protected renderer = new Renderer();
 
   constructor(
-    @inject(ElementRef) protected elementRef: ElementRef<Element>,
-    @inject(TemplateRef) protected templateRef: TemplateRef,
-    @inject(CONTEXT_TOKEN) protected context: any,
-    @inject(Injector) protected serviceCollection: Injector
+    protected templateRef: TemplateRef,
+    protected context: any,
+    protected serviceCollection: Injector
   ) {
     const bindings = compileTemplate(this.templateRef);
     bindings?.forEach((binding) => {
@@ -106,9 +110,17 @@ abstract class AbstractView implements IView {
   }
 }
 
-export class EmbededView extends AbstractView implements IView {}
+export class EmbededView extends ViewRef {
+  constructor(
+    @inject(TemplateRef) templateRef: TemplateRef,
+    @inject(CONTEXT_TOKEN) context: any,
+    @inject(Injector) injector: Injector
+  ) {
+    super(templateRef, context, injector);
+  }
+}
 
-export class ShadowView extends AbstractView implements IView {
+export class ComponentRef extends ViewRef {
   constructor(
     @inject(ElementRef) elementRef: ElementRef<Element>,
     @inject(TemplateRef) templateRef: TemplateRef,
@@ -124,7 +136,7 @@ export class ShadowView extends AbstractView implements IView {
     const customerElement = shadow.host as unknown as ICustomerElement;
     const parent = shadow.host.getRootNode();
 
-    // On réccupére les variables d'en des parents
+    // On injecte les paramétre du parent vers l'enfant.
     if (parent instanceof ShadowRoot) {
       serviceCollection.parent = (
         parent.host as unknown as ICustomerElement
@@ -139,7 +151,7 @@ export class ShadowView extends AbstractView implements IView {
       });
     }
 
-    super(elementRef, templateRef, context, serviceCollection);
+    super(templateRef, context, serviceCollection);
 
     shadow.appendChild(templateRef.element);
   }
