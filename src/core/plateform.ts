@@ -41,7 +41,6 @@ class DefaultRenderStrategy implements RenderStrategy {
     services.bind(ForDirective).toSelf().inTransientScope();
     services.bind(ComponentRef).toSelf().inTransientScope();
     services.bind(EmbededView).toSelf().inTransientScope();
-    services.bind(ViewFactory).toSelf().inTransientScope();
 
     // test user service (plus tard serra dans provider)
     services.bind(ServiceTest).toSelf().inTransientScope();

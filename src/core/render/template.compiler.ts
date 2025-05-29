@@ -1,8 +1,8 @@
 import { ForDirective } from "../directives/for.directive";
-import { IInjector } from "../services/service.collection";
+import { IInjector } from "../services/injector";
 import { Signal } from "./reactivity.ref";
 import { EventKey, Renderer } from "./renderer";
-import { ElementRef, TemplateRef } from "./view.builder";
+import { ElementRef, TemplateRef, ViewFactory } from "./view.builder";
 
 export interface CompiledTemplate {
   template: DocumentFragment;
@@ -197,17 +197,17 @@ export function compileTemplate(
             directive: attr.name,
             expression: attr.value,
             bind(services: IInjector, context: any) {
-              const elementRef = new ElementRef(this.node);
-              const template = `<template>${elementRef.nativeElement.innerHTML}</template>`;
+              const template = `<template>${this.node.innerHTML}</template>`;
               const templateRef = createTemplateRef(template);
 
-              services.bind(ElementRef).toConstantValue(elementRef);
-              services.bind(TemplateRef).toConstantValue(templateRef);
-
-              elementRef.nativeElement.innerHTML = "";
-
               if (this.node.hasAttribute("*for")) {
+                this.node.innerHTML = "";
+                const elementRef = new ElementRef(this.node);
+                const viewFactory = new ViewFactory(elementRef);
+
                 const list = services.get(ForDirective);
+                list.useViewFactory(viewFactory);
+                list.useTemplateRef(templateRef);
 
                 this.node.hasAttribute("*for");
                 const signal = context[this.node.getAttribute("*for") || ""];

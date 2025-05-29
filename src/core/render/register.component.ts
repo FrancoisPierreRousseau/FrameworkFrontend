@@ -1,11 +1,11 @@
 import { ComponentTemplate, Constructor } from "../components/component";
-import { IInjector, Injector } from "../services/service.collection";
+import { IInjector, Injector } from "../services/injector";
 import { viewChildSubject } from "../authoring/queries";
 import { ElementRef, TemplateRef, ViewFactory } from "./view.builder";
 
 export interface ICustomerElement {
   component: any | null;
-  elementRef: ElementRef<HTMLElement>;
+  elementRef: ElementRef<Element>;
   services: IInjector;
 }
 
@@ -27,7 +27,7 @@ export const registerComponent = (
       autoBindInjectable: true,
     });
     public readonly component: any | null = null;
-    public readonly elementRef: ElementRef<HTMLElement> = new ElementRef(this);
+    public readonly elementRef: ElementRef<Element>;
     private readonly componentType: Constructor<any>;
 
     constructor() {
@@ -37,15 +37,16 @@ export const registerComponent = (
 
       this.services.parent = services;
 
-      this.elementRef = new ElementRef(this);
+      const shadow: ShadowRoot = this.attachShadow({
+        mode: "open",
+      });
+
+      this.elementRef = new ElementRef(shadow.host);
 
       this.services.bind(ElementRef).toConstantValue(this.elementRef);
-      this.services
-        .bind(TemplateRef)
-        .toConstantValue(componentTemplate.template);
       this.component = this.services.get(this.componentType);
 
-      const viewFactory = this.services.get(ViewFactory);
+      const viewFactory = new ViewFactory(this.elementRef);
 
       viewFactory.createView(
         this.component,

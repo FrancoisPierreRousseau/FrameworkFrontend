@@ -5,15 +5,24 @@ import {
   TemplateRef,
   ViewFactory,
 } from "../render/view.builder";
-import { Injector } from "../services/service.collection";
+import { Injector } from "../services/injector";
 
 export class ForDirective {
+  private viewFactory!: ViewFactory;
+  private templateRef!: TemplateRef;
+
   constructor(
-    @inject(ViewFactory) private viewFactory: ViewFactory,
-    @inject(CONTEXT_TOKEN) private parentContext: any,
-    @inject(Injector) private injector: Injector,
-    @inject(TemplateRef) private templateRef: TemplateRef
+    @inject(CONTEXT_TOKEN) private parentContext: any, // Dot utiliser le host donc le component parenttss
+    @inject(Injector) private injector: Injector
   ) {}
+
+  useTemplateRef(templateRef: TemplateRef) {
+    this.templateRef = templateRef;
+  }
+
+  useViewFactory(viewFactory: ViewFactory) {
+    this.viewFactory = viewFactory;
+  }
 
   apply(values: any) {
     this.viewFactory.clear();

@@ -1,5 +1,5 @@
 import { inject } from "inversify";
-import { IInjector, Injector } from "../services/service.collection";
+import { IInjector, Injector } from "../services/injector";
 import { ICustomerElement } from "./register.component";
 import { Renderer } from "./renderer";
 import { compileTemplate } from "./template.compiler";
@@ -14,9 +14,7 @@ export const CONTEXT_TOKEN = Symbol.for("CONTEXT_TOKEN");
 export class ViewFactory {
   private injector = new Injector();
 
-  constructor(
-    @inject(ElementRef) private elementRef: ElementRef<HTMLElement>
-  ) {}
+  constructor(private elementRef: ElementRef<Element>) {}
 
   createEmbededView(
     templateRef: TemplateRef,
@@ -25,11 +23,7 @@ export class ViewFactory {
   ) {
     this.injector.parent = services;
 
-    this.injector.bind(TemplateRef).toConstantValue(templateRef);
-    this.injector.bind(Injector).toConstantValue(this.injector);
-    this.injector.bind(CONTEXT_TOKEN).toConstantValue(context);
-
-    const embededViewRef = this.injector.get(EmbededView);
+    const embededViewRef = new EmbededView(templateRef, context, this.injector);
 
     this.elementRef.nativeElement.appendChild(templateRef.element);
 
@@ -47,11 +41,17 @@ export class ViewFactory {
   ) {
     this.injector.parent = services;
 
+    this.injector.bind(ElementRef).toConstantValue(this.elementRef);
+    this.injector.bind(ViewFactory).toConstantValue(this);
     this.injector.bind(TemplateRef).toConstantValue(templateRef);
     this.injector.bind(CONTEXT_TOKEN).toConstantValue(component);
     this.injector.bind(Injector).toConstantValue(this.injector);
 
-    return this.injector.get(ComponentRef);
+    const componentRef = this.injector.get(ComponentRef);
+
+    this.elementRef.nativeElement.shadowRoot!.appendChild(templateRef.element);
+
+    return componentRef;
   }
 
   clear() {
@@ -80,14 +80,14 @@ export class TemplateRef {
     const templateEl = doc.querySelector("template");
 
     if (!templateEl) {
-      throw new Error("un probléme"); // Et indiquer le nom du template posant probléme en question
+      throw new Error("un probléme"); // Le messsage d'erreur doit être plus explicite
     }
 
     return templateEl.content;
   }
 }
 
-// Pourra implémenter un destroy pour disparaitre du dom par exemple.
+// Pourra implémenter un destroy pour disparaitre du dom par exemple. Ou encore un detach ect ect...
 // ou encore une methode pour réaparaitre au même endroit.
 abstract class ViewRef {
   protected renderer = new Renderer();
@@ -111,11 +111,7 @@ abstract class ViewRef {
 }
 
 export class EmbededView extends ViewRef {
-  constructor(
-    @inject(TemplateRef) templateRef: TemplateRef,
-    @inject(CONTEXT_TOKEN) context: any,
-    @inject(Injector) injector: Injector
-  ) {
+  constructor(templateRef: TemplateRef, context: any, injector: Injector) {
     super(templateRef, context, injector);
   }
 }
@@ -125,34 +121,31 @@ export class ComponentRef extends ViewRef {
     @inject(ElementRef) elementRef: ElementRef<Element>,
     @inject(TemplateRef) templateRef: TemplateRef,
     @inject(CONTEXT_TOKEN) context: any,
-    @inject(Injector) serviceCollection: Injector
+    @inject(Injector) injector: Injector
   ) {
     // Création d'un context attaché au child, qui possédera l'instance du component #context implicitement.
     // Ainsi dans le childrenView, j'aurai juste à renseigner sa référence pour requété dessus (type === instance.typ)
 
-    const shadow: ShadowRoot = elementRef.nativeElement.attachShadow({
-      mode: "open",
-    });
-    const customerElement = shadow.host as unknown as ICustomerElement;
-    const parent = shadow.host.getRootNode();
+    const customerElement =
+      elementRef.nativeElement as unknown as ICustomerElement;
+
+    const parent = elementRef.nativeElement.getRootNode();
 
     // On injecte les paramétre du parent vers l'enfant.
     if (parent instanceof ShadowRoot) {
-      serviceCollection.parent = (
-        parent.host as unknown as ICustomerElement
-      ).services;
+      injector.parent = (parent.host as unknown as ICustomerElement).services;
 
-      [...shadow.host.attributes].forEach((attr) => {
-        if (attr.name in customerElement.component) {
-          customerElement.component[attr.name] = (
-            parent.host as unknown as ICustomerElement
-          ).component[attr.value];
+      [...elementRef.nativeElement.shadowRoot!.host.attributes].forEach(
+        (attr) => {
+          if (attr.name in customerElement.component) {
+            customerElement.component[attr.name] = (
+              parent.host as unknown as ICustomerElement
+            ).component[attr.value];
+          }
         }
-      });
+      );
     }
 
-    super(templateRef, context, serviceCollection);
-
-    shadow.appendChild(templateRef.element);
+    super(templateRef, context, injector);
   }
 }
