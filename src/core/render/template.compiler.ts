@@ -46,9 +46,6 @@ export type BindingInstruction =
 export function compileTemplate(
   templateRef: TemplateRef
 ): BindingInstruction[] {
-  // const parser = new DOMParser();
-  // const doc = parser.parseFromString(raw, "text/html");
-  // const templateEl = doc.querySelector("template");
   const fragment = templateRef.element as DocumentFragment;
 
   const bindings: BindingInstruction[] = [];
@@ -206,6 +203,8 @@ export function compileTemplate(
 
               services.bind(ElementRef).toConstantValue(elementRef);
               services.bind(TemplateRef).toConstantValue(templateRef);
+
+              elementRef.nativeElement.innerHTML = "";
 
               if (this.node.hasAttribute("*for")) {
                 const list = services.get(ForDirective);

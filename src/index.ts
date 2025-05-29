@@ -6,7 +6,7 @@ import { Plateform } from "./core/plateform";
   Ce qu'il me manque c'est le systéme de RXJS.
   C'est à dire avoir la possibilité de créer des subjects réagissant au déclenchement d'un
   observer. 
-
+  
   Création d'une abstraction au niveau des directives (via une interface), et permettre
   la personnalisation des selectors attaché aux différentes directives.
 

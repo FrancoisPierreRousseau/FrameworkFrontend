@@ -1,7 +1,7 @@
 import { ComponentTemplate, Constructor } from "../components/component";
 import { IInjector, Injector } from "../services/service.collection";
 import { viewChildSubject } from "../authoring/queries";
-import { ElementRef, ViewFactory } from "./view.builder";
+import { ElementRef, TemplateRef, ViewFactory } from "./view.builder";
 
 export interface ICustomerElement {
   component: any | null;
@@ -40,7 +40,9 @@ export const registerComponent = (
       this.elementRef = new ElementRef(this);
 
       this.services.bind(ElementRef).toConstantValue(this.elementRef);
-
+      this.services
+        .bind(TemplateRef)
+        .toConstantValue(componentTemplate.template);
       this.component = this.services.get(this.componentType);
 
       const viewFactory = this.services.get(ViewFactory);

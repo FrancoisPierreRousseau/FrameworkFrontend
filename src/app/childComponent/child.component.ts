@@ -20,5 +20,7 @@ export class ChildComponent {
     @inject(Renderer) public renderer: Renderer
   ) {}
 
-  afterViewInit() {}
+  afterViewInit() {
+    // console.log(this.childComponent);
+  }
 }

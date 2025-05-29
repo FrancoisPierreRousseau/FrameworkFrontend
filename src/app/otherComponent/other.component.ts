@@ -21,6 +21,6 @@ export class OtherComponent {
   ) {}
 
   afterViewInit() {
-    // console.log(this.otherComponent);
+    console.log(this.otherComponent);
   }
 }

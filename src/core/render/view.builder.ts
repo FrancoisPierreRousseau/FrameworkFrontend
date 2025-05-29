@@ -15,7 +15,9 @@ export const CONTEXT_TOKEN = Symbol.for("CONTEXT_TOKEN");
 export class ViewFactory {
   private injector = new Injector();
 
-  constructor() {}
+  constructor(
+    @inject(ElementRef) private elementRef: ElementRef<HTMLElement>
+  ) {}
 
   createEmbededView(
     templateRef: TemplateRef,
@@ -29,6 +31,8 @@ export class ViewFactory {
     this.injector.bind(CONTEXT_TOKEN).toConstantValue(context);
 
     this.injector.get(EmbededView);
+
+    this.elementRef.nativeElement.appendChild(templateRef.element);
   }
 
   createView(
@@ -44,12 +48,16 @@ export class ViewFactory {
 
     return this.injector.get(ShadowView);
   }
+
+  clear() {
+    this.elementRef.nativeElement.innerHTML = "";
+  }
 }
 
 export class TemplateRef {
   private fragment: DocumentFragment;
 
-  constructor(private raw: string /*public element: DocumentFragment */) {
+  constructor(private raw: string) {
     this.fragment = this.creatFragment();
   }
 
