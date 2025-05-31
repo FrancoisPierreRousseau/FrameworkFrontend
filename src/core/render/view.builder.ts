@@ -1,5 +1,5 @@
-import { inject } from "inversify";
-import { IInjector, Injector } from "../services/injector";
+import { Constructor } from "../plateform";
+import { Injector } from "../services/injector";
 import { ICustomerElement } from "./register.component";
 import { Renderer } from "./renderer";
 import { compileTemplate } from "./template.compiler";
@@ -8,50 +8,74 @@ export class ElementRef<TElement extends Element> {
   constructor(public nativeElement: TElement) {}
 }
 
-export const CONTEXT_TOKEN = Symbol.for("CONTEXT_TOKEN");
+// Sert uniquement lors du rendu d'un webcomponent
+export const renderWebcomonent = (
+  component: any,
+  templateRef: TemplateRef,
+  injector: Injector,
+  elementRef: ElementRef<Element>
+) => {
+  const componentRef = new ComponentRef(
+    elementRef,
+    templateRef,
+    component,
+    injector
+  );
 
-// Gére la hierarchie des injectors et la construction des views
+  elementRef.nativeElement.shadowRoot!.appendChild(templateRef.element);
+
+  return componentRef;
+};
+
+// Classe helper gérant le rendu dynamiquement d'un template.
 export class ViewFactory {
-  private injector = new Injector();
-
-  constructor(private elementRef: ElementRef<Element>) {}
+  constructor(
+    private elementRef: ElementRef<Element>,
+    private context: any,
+    private injector: Injector
+  ) {}
 
   createEmbededView(
     templateRef: TemplateRef,
     context: any,
-    services: Injector | null = null
+    services: Injector | null = null // Spécique l'injector local. .
   ) {
-    this.injector.parent = services;
+    let injector: Injector;
 
-    const embededViewRef = new EmbededView(templateRef, context, this.injector);
+    if (services) {
+      injector = services;
+    } else {
+      injector = new Injector();
+    }
+
+    injector.parent = this.injector;
+
+    const embededViewRef = new EmbededViewRef(
+      templateRef,
+      { ...this.context, ...context },
+      injector
+    );
 
     this.elementRef.nativeElement.appendChild(templateRef.element);
 
     return embededViewRef;
   }
 
-  // Cette méthode fonctionne que partiellement, dans le sens que
-  // le webcomponent devrait être insérer à la fin dans le nativement element. Ce n'est à l'heure pas le cas
-  // Cependant cela devrait être le cas. Donc gérer la construction du selector root par ce systéme là
-  // pourrait être intéréssant pour la standardisaition.
+  /*
+    Permet d'insérer un component 
+    comonentType: le type du component que l'on veut rendre
+    Injector: sépicie  l'injector local du component. Sinon on utilise celui par défaut. 
+  */
   createView(
-    component: any,
-    services: IInjector | null = null,
-    templateRef: TemplateRef
+    componentType: Constructor<any>,
+    injector: Injector | null = null
   ) {
-    this.injector.parent = services;
-
-    this.injector.bind(ElementRef).toConstantValue(this.elementRef);
-    this.injector.bind(ViewFactory).toConstantValue(this);
-    this.injector.bind(TemplateRef).toConstantValue(templateRef);
-    this.injector.bind(CONTEXT_TOKEN).toConstantValue(component);
-    this.injector.bind(Injector).toConstantValue(this.injector);
-
-    const componentRef = this.injector.get(ComponentRef);
-
-    this.elementRef.nativeElement.shadowRoot!.appendChild(templateRef.element);
-
-    return componentRef;
+    /*     
+      Il manque des bout pour gérer l'injector. 
+      Regarder si le component est enregistré. Si il ne l'est pas alors je léve une exception. 
+      Si il l'est je crée l'élément. Cela exécutera automatiquement le code du registrercomponent. 
+      Et j'insére le customelement dans le container. 
+   */
   }
 
   clear() {
@@ -110,7 +134,7 @@ abstract class ViewRef {
   }
 }
 
-export class EmbededView extends ViewRef {
+export class EmbededViewRef extends ViewRef {
   constructor(templateRef: TemplateRef, context: any, injector: Injector) {
     super(templateRef, context, injector);
   }
@@ -118,10 +142,10 @@ export class EmbededView extends ViewRef {
 
 export class ComponentRef extends ViewRef {
   constructor(
-    @inject(ElementRef) elementRef: ElementRef<Element>,
-    @inject(TemplateRef) templateRef: TemplateRef,
-    @inject(CONTEXT_TOKEN) context: any,
-    @inject(Injector) injector: Injector
+    elementRef: ElementRef<Element>,
+    templateRef: TemplateRef,
+    context: any,
+    injector: Injector
   ) {
     // Création d'un context attaché au child, qui possédera l'instance du component #context implicitement.
     // Ainsi dans le childrenView, j'aurai juste à renseigner sa référence pour requété dessus (type === instance.typ)
@@ -133,6 +157,7 @@ export class ComponentRef extends ViewRef {
 
     // On injecte les paramétre du parent vers l'enfant.
     if (parent instanceof ShadowRoot) {
+      // Chaque injector component hérite de celui du parent
       injector.parent = (parent.host as unknown as ICustomerElement).services;
 
       [...elementRef.nativeElement.shadowRoot!.host.attributes].forEach(

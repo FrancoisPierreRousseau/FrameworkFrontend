@@ -56,10 +56,11 @@ export class AppComponent {
 
   isDisabled = signal(true);
 
-  constructor(@inject(ElementRef) private element: ElementRef<HTMLElement>) {}
+  constructor() //S @inject(ElementRef) private element: ElementRef<HTMLElement>
+  {}
 
   afterViewInit() {
-    console.log(this.element.nativeElement);
+    // console.log(this.element.nativeElement);
   }
 
   // @Input() prop1, prop2...

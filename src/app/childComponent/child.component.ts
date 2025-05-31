@@ -16,7 +16,7 @@ export class ChildComponent {
   count = signal(0);
 
   constructor(
-    @inject(ElementRef) public element: ElementRef<HTMLElement>,
+    // @inject(ElementRef) public element: ElementRef<HTMLElement>,
     @inject(Renderer) public renderer: Renderer
   ) {}
 

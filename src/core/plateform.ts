@@ -4,7 +4,7 @@ import {
   ComponentTemplateMetadata,
 } from "./components/component";
 import { registerComponent } from "./render/register.component";
-import { EmbededView, ComponentRef, ViewFactory } from "./render/view.builder";
+import { EmbededViewRef, ComponentRef } from "./render/view.builder";
 import { ServiceTest } from "../app/service.test";
 import { ForDirective } from "./directives/for.directive";
 
@@ -40,7 +40,7 @@ class DefaultRenderStrategy implements RenderStrategy {
     const services = new Container({ autoBindInjectable: true });
     services.bind(ForDirective).toSelf().inTransientScope();
     services.bind(ComponentRef).toSelf().inTransientScope();
-    services.bind(EmbededView).toSelf().inTransientScope();
+    services.bind(EmbededViewRef).toSelf().inTransientScope();
 
     // test user service (plus tard serra dans provider)
     services.bind(ServiceTest).toSelf().inTransientScope();

@@ -1,7 +1,7 @@
 import { ComponentTemplate, Constructor } from "../components/component";
 import { IInjector, Injector } from "../services/injector";
 import { viewChildSubject } from "../authoring/queries";
-import { ElementRef, TemplateRef, ViewFactory } from "./view.builder";
+import { ElementRef, renderWebcomonent, ViewFactory } from "./view.builder";
 
 export interface ICustomerElement {
   component: any | null;
@@ -23,7 +23,7 @@ export const registerComponent = (
   class CustomElement extends HTMLElement implements ICustomerElement {
     // Ce services là doit est dirrectement en rapport avec le type de component.
     // Il doit se construire à la racine. Defaut de conception et perte en terme de performance.
-    public readonly services: IInjector = new Injector({
+    public readonly services: Injector = new Injector({
       autoBindInjectable: true,
     });
     public readonly component: any | null = null;
@@ -42,16 +42,23 @@ export const registerComponent = (
       });
 
       this.elementRef = new ElementRef(shadow.host);
-
-      this.services.bind(ElementRef).toConstantValue(this.elementRef);
       this.component = this.services.get(this.componentType);
 
-      const viewFactory = new ViewFactory(this.elementRef);
+      // Maintenant dans mon context, cela sertivera plus comme une classe helper
+      // Pour le rendu dynamique. Elle est toujours utilisé pour les directvees.
+      const viewFactory = new ViewFactory(
+        this.elementRef,
+        this.component, // Normalement pas besoin car il devrait être récupérer via le componentypes
+        this.services
+      );
 
-      viewFactory.createView(
+      // viewFactory.createView(this.componentType, componentTemplate.template);
+
+      renderWebcomonent(
         this.component,
+        componentTemplate.template,
         this.services,
-        componentTemplate.template
+        this.elementRef
       );
     }
 

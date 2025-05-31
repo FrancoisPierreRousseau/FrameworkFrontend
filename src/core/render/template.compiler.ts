@@ -1,5 +1,5 @@
 import { ForDirective } from "../directives/for.directive";
-import { IInjector } from "../services/injector";
+import { IInjector, Injector } from "../services/injector";
 import { Signal } from "./reactivity.ref";
 import { EventKey, Renderer } from "./renderer";
 import { ElementRef, TemplateRef, ViewFactory } from "./view.builder";
@@ -196,16 +196,20 @@ export function compileTemplate(
             node,
             directive: attr.name,
             expression: attr.value,
-            bind(services: IInjector, context: any) {
+            bind(injector: Injector, context: any) {
               const template = `<template>${this.node.innerHTML}</template>`;
               const templateRef = createTemplateRef(template);
 
               if (this.node.hasAttribute("*for")) {
                 this.node.innerHTML = "";
                 const elementRef = new ElementRef(this.node);
-                const viewFactory = new ViewFactory(elementRef);
+                const viewFactory = new ViewFactory(
+                  elementRef,
+                  context,
+                  injector
+                );
 
-                const list = services.get(ForDirective);
+                const list = injector.get(ForDirective);
                 list.useViewFactory(viewFactory);
                 list.useTemplateRef(templateRef);
 

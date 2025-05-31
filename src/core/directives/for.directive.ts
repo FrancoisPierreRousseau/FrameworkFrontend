@@ -1,20 +1,10 @@
-import { inject } from "inversify";
-
-import {
-  CONTEXT_TOKEN,
-  TemplateRef,
-  ViewFactory,
-} from "../render/view.builder";
-import { Injector } from "../services/injector";
+import { TemplateRef, ViewFactory } from "../render/view.builder";
 
 export class ForDirective {
   private viewFactory!: ViewFactory;
   private templateRef!: TemplateRef;
 
-  constructor(
-    @inject(CONTEXT_TOKEN) private parentContext: any, // Dot utiliser le host donc le component parenttss
-    @inject(Injector) private injector: Injector
-  ) {}
+  constructor() {}
 
   useTemplateRef(templateRef: TemplateRef) {
     this.templateRef = templateRef;
@@ -28,15 +18,10 @@ export class ForDirective {
     this.viewFactory.clear();
 
     values.forEach((item: any, index: number) => {
-      this.viewFactory.createEmbededView(
-        this.templateRef,
-        {
-          ...this.parentContext,
-          ...item,
-          index,
-        },
-        this.injector
-      );
+      this.viewFactory.createEmbededView(this.templateRef, {
+        ...item,
+        index,
+      });
     });
   }
 }
