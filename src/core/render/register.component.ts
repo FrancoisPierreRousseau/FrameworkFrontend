@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { ComponentTemplate, Constructor } from "../components/component";
 import { IInjector, Injector } from "../services/injector";
 import { viewChildSubject } from "../authoring/queries";
@@ -6,7 +7,7 @@ import { ElementRef, renderWebcomonent, ViewFactory } from "./view.builder";
 export interface ICustomerElement {
   component: any | null;
   elementRef: ElementRef<Element>;
-  services: IInjector;
+  injector: IInjector;
 }
 
 // Créer un systéme permettant de gérer l'insertion dynamique des vues
@@ -23,41 +24,38 @@ export const registerComponent = (
   class CustomElement extends HTMLElement implements ICustomerElement {
     // Ce services là doit est dirrectement en rapport avec le type de component.
     // Il doit se construire à la racine. Defaut de conception et perte en terme de performance.
-    public readonly services: Injector = new Injector({
-      autoBindInjectable: true,
-    });
+    public readonly injector: Injector = new Injector();
     public readonly component: any | null = null;
     public readonly elementRef: ElementRef<Element>;
     private readonly componentType: Constructor<any>;
+    private viewFactory: ViewFactory | null = null;
 
     constructor() {
       super();
 
       this.componentType = componentTemplate.componentType;
 
-      this.services.parent = services;
+      // Le parent correspond à l'environment injector
+      this.injector.parent = services;
 
       const shadow: ShadowRoot = this.attachShadow({
         mode: "open",
       });
 
       this.elementRef = new ElementRef(shadow.host);
-      this.component = this.services.get(this.componentType);
 
-      // Maintenant dans mon context, cela sertivera plus comme une classe helper
-      // Pour le rendu dynamique. Elle est toujours utilisé pour les directvees.
-      const viewFactory = new ViewFactory(
-        this.elementRef,
-        this.component, // Normalement pas besoin car il devrait être récupérer via le componentypes
-        this.services
-      );
+      this.injector
+        .bind<() => ViewFactory | null>(ViewFactory)
+        .toFactory(() => () => this.viewFactory);
 
-      // viewFactory.createView(this.componentType, componentTemplate.template);
+      this.injector.bind(ElementRef).toConstantValue(this.elementRef);
+
+      this.component = this.injector.get(this.componentType);
 
       renderWebcomonent(
         this.component,
         componentTemplate.template,
-        this.services,
+        this.injector,
         this.elementRef
       );
     }
@@ -78,6 +76,16 @@ export const registerComponent = (
       if (this.shadowRoot) {
         viewChildSubject.notify(this.componentType, this.shadowRoot);
       }
+
+      // Maintenant dans mon context, cela sertivera plus comme une classe helper
+      // Pour le rendu dynamique. Elle est toujours utilisé pour les directvees.
+      // Est disponible que dans le afterViewInit
+      // Il devrait être récupérer à partir du componentRef
+      this.viewFactory = new ViewFactory(
+        this.elementRef,
+        this.component,
+        this.injector
+      );
 
       if (
         this.component.afterViewInit &&

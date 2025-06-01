@@ -3,7 +3,7 @@ import { Component } from "../../core/components/component";
 import { Renderer } from "../../core/render/renderer";
 import { ChildComponent } from "../childComponent/child.component";
 import { ViewChild } from "../../core/authoring/queries";
-import { ElementRef } from "../../core/render/view.builder";
+import { ElementRef, ViewFactory } from "../../core/render/view.builder";
 
 @Component({
   selector: "other-component",
@@ -16,11 +16,16 @@ export class OtherComponent {
   @ViewChild(ChildComponent) otherComponent!: ChildComponent; // Ne marche pas encore actuellement
 
   constructor(
-    // @inject(ElementRef) public element: ElementRef<HTMLElement>,
-    @inject(Renderer) public renderer: Renderer
-  ) {}
+    @inject(ElementRef) public element: ElementRef<HTMLElement>,
+    @inject(Renderer) public renderer: Renderer,
+    @inject(ViewFactory) public viewFactory: () => ViewFactory | null
+  ) {
+    // console.log(this.viewFactory());
+  }
 
   afterViewInit() {
-    console.log(this.otherComponent);
+    // console.log(this.otherComponent);
+    // console.log(this.viewFactory());
+    // console.log(this.element.nativeElement);
   }
 }

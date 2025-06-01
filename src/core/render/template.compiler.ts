@@ -171,20 +171,17 @@ export function compileTemplate(
             event: attr.name.slice(1, -1),
             handler: attr.value,
             bind(component: any, renderer: Renderer) {
-              const event = attr.localName.slice(1, attr.localName.length - 1);
-              const method = attr.value;
-
               if (
-                !(method in component) ||
-                typeof component[method] !== "function"
+                !(this.handler in component) ||
+                typeof component[this.handler] !== "function"
               ) {
                 throw new Error("Method not found or invalid in the component");
               }
 
               renderer.listen(
                 this.node,
-                event as EventKey,
-                component[method].bind(component)
+                this.event as EventKey,
+                component[this.handler].bind(component)
               );
 
               this.node.removeAttributeNode(attr);
@@ -203,17 +200,19 @@ export function compileTemplate(
               if (this.node.hasAttribute("*for")) {
                 this.node.innerHTML = "";
                 const elementRef = new ElementRef(this.node);
+
+                const localInjector = new Injector();
+                localInjector.parent = injector;
                 const viewFactory = new ViewFactory(
                   elementRef,
                   context,
-                  injector
+                  localInjector
                 );
+                localInjector.bind(ViewFactory).toConstantValue(viewFactory);
+                localInjector.bind(TemplateRef).toConstantValue(templateRef);
+                localInjector.bind(ElementRef).toConstantValue(elementRef);
+                const list = localInjector.get(ForDirective);
 
-                const list = injector.get(ForDirective);
-                list.useViewFactory(viewFactory);
-                list.useTemplateRef(templateRef);
-
-                this.node.hasAttribute("*for");
                 const signal = context[this.node.getAttribute("*for") || ""];
                 if (signal instanceof Signal) {
                   signal.subscribe(list.apply.bind(list));

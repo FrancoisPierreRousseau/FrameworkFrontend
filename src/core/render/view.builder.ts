@@ -32,23 +32,21 @@ export class ViewFactory {
   constructor(
     private elementRef: ElementRef<Element>,
     private context: any,
-    private injector: Injector
+    private localInjector: Injector
   ) {}
 
   createEmbededView(
     templateRef: TemplateRef,
     context: any,
-    services: Injector | null = null // Spécique l'injector local. .
+    services: Injector | null = null
   ) {
     let injector: Injector;
 
     if (services) {
       injector = services;
     } else {
-      injector = new Injector();
+      injector = this.localInjector;
     }
-
-    injector.parent = this.injector;
 
     const embededViewRef = new EmbededViewRef(
       templateRef,
@@ -119,12 +117,13 @@ abstract class ViewRef {
   constructor(
     protected templateRef: TemplateRef,
     protected context: any,
-    protected serviceCollection: Injector
+    protected injector: Injector
   ) {
     const bindings = compileTemplate(this.templateRef);
     bindings?.forEach((binding) => {
       if (binding.type === "directive") {
-        binding.bind(serviceCollection, context);
+        
+        binding.bind(injector, context);
       } else if (binding.type === "event") {
         binding.bind(context, this.renderer);
       } else {
@@ -144,11 +143,12 @@ export class ComponentRef extends ViewRef {
   constructor(
     elementRef: ElementRef<Element>,
     templateRef: TemplateRef,
-    context: any,
+    component: any,
     injector: Injector
   ) {
     // Création d'un context attaché au child, qui possédera l'instance du component #context implicitement.
     // Ainsi dans le childrenView, j'aurai juste à renseigner sa référence pour requété dessus (type === instance.typ)
+    // Ou encore mieux ! directement binder les variable (viewchildren) du component ici ? A voir et experimenter.
 
     const customerElement =
       elementRef.nativeElement as unknown as ICustomerElement;
@@ -158,7 +158,7 @@ export class ComponentRef extends ViewRef {
     // On injecte les paramétre du parent vers l'enfant.
     if (parent instanceof ShadowRoot) {
       // Chaque injector component hérite de celui du parent
-      injector.parent = (parent.host as unknown as ICustomerElement).services;
+      injector.parent = (parent.host as unknown as ICustomerElement).injector;
 
       [...elementRef.nativeElement.shadowRoot!.host.attributes].forEach(
         (attr) => {
@@ -171,6 +171,6 @@ export class ComponentRef extends ViewRef {
       );
     }
 
-    super(templateRef, context, injector);
+    super(templateRef, component, injector);
   }
 }

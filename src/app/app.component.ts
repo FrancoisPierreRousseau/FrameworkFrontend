@@ -4,7 +4,6 @@ import { ChildComponent } from "./childComponent/child.component";
 import { OtherComponent } from "./otherComponent/other.component";
 import { ViewChild } from "../core/authoring/queries";
 import { signal } from "../core/render/reactivity.ref";
-import { ElementRef } from "../core/render/view.builder";
 
 interface User {
   firstName: string;
@@ -56,8 +55,7 @@ export class AppComponent {
 
   isDisabled = signal(true);
 
-  constructor() //S @inject(ElementRef) private element: ElementRef<HTMLElement>
-  {}
+  constructor() {} //S @inject(ElementRef) private element: ElementRef<HTMLElement>
 
   afterViewInit() {
     // console.log(this.element.nativeElement);

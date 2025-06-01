@@ -1,18 +1,11 @@
+import { inject } from "inversify";
 import { TemplateRef, ViewFactory } from "../render/view.builder";
 
 export class ForDirective {
-  private viewFactory!: ViewFactory;
-  private templateRef!: TemplateRef;
-
-  constructor() {}
-
-  useTemplateRef(templateRef: TemplateRef) {
-    this.templateRef = templateRef;
-  }
-
-  useViewFactory(viewFactory: ViewFactory) {
-    this.viewFactory = viewFactory;
-  }
+  constructor(
+    @inject(ViewFactory) private viewFactory: ViewFactory,
+    @inject(TemplateRef) private templateRef: TemplateRef
+  ) {}
 
   apply(values: any) {
     this.viewFactory.clear();

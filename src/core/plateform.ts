@@ -4,7 +4,11 @@ import {
   ComponentTemplateMetadata,
 } from "./components/component";
 import { registerComponent } from "./render/register.component";
-import { EmbededViewRef, ComponentRef } from "./render/view.builder";
+import {
+  EmbededViewRef,
+  ComponentRef,
+  TemplateRef,
+} from "./render/view.builder";
 import { ServiceTest } from "../app/service.test";
 import { ForDirective } from "./directives/for.directive";
 
