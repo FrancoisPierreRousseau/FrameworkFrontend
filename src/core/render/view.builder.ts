@@ -122,7 +122,6 @@ abstract class ViewRef {
     const bindings = compileTemplate(this.templateRef);
     bindings?.forEach((binding) => {
       if (binding.type === "directive") {
-        
         binding.bind(injector, context);
       } else if (binding.type === "event") {
         binding.bind(context, this.renderer);
@@ -146,10 +145,6 @@ export class ComponentRef extends ViewRef {
     component: any,
     injector: Injector
   ) {
-    // Création d'un context attaché au child, qui possédera l'instance du component #context implicitement.
-    // Ainsi dans le childrenView, j'aurai juste à renseigner sa référence pour requété dessus (type === instance.typ)
-    // Ou encore mieux ! directement binder les variable (viewchildren) du component ici ? A voir et experimenter.
-
     const customerElement =
       elementRef.nativeElement as unknown as ICustomerElement;
 
@@ -172,5 +167,10 @@ export class ComponentRef extends ViewRef {
     }
 
     super(templateRef, component, injector);
+
+    // Création d'un context renseignant toute les métadata à la recherche d'éléments.
+    // Ici je récupére les viewchildren pour ensuite les assigner dans les component (les fragments auront toute
+    // les informations à cette endroit).
+    // Peut être recentralisé tout cela dans le viewref. Ainsi les directive pourront bénéficier des viewchildren.
   }
 }
